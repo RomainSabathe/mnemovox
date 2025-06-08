@@ -4,7 +4,7 @@
 import pytest
 import sqlite3
 from pathlib import Path
-from db import init_db, get_session
+from src.audio_manager.db import init_db, get_session
 from sqlalchemy import inspect
 
 

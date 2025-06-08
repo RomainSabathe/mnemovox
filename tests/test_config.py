@@ -4,7 +4,7 @@
 import pytest
 import yaml
 from pathlib import Path
-from config import get_config
+from src.audio_manager.config import get_config
 
 
 def test_config_loads_from_yaml(tmp_path):

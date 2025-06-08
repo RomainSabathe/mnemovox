@@ -7,9 +7,9 @@ from pathlib import Path
 from datetime import datetime
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler, FileCreatedEvent
-from audio_utils import probe_metadata, generate_internal_filename
-from db import get_session, Recording
-from config import Config
+from .audio_utils import probe_metadata, generate_internal_filename
+from .db import get_session, Recording
+from .config import Config
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
