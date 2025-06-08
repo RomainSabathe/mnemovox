@@ -13,6 +13,7 @@ dependencies = [
     "watchdog",
     "faster-whisper",
     "pytest",
+    "pytest-asyncio",
     "sqlalchemy",
     "PyYAML",
 ]
