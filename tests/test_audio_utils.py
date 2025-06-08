@@ -4,6 +4,7 @@
 import pytest
 import json
 import time
+from pathlib import Path
 from unittest.mock import patch, MagicMock
 from src.audio_manager.audio_utils import probe_metadata, generate_internal_filename
 
@@ -157,3 +158,111 @@ def test_generate_internal_filename_timestamp_increases():
     timestamp2 = int(filename2.split('_')[0])
     
     assert timestamp2 >= timestamp1
+
+
+# Integration tests with real audio file
+@pytest.mark.integration
+def test_probe_metadata_real_audio_file():
+    """Integration test: probe metadata from actual audio file using ffprobe."""
+    audio_path = Path(__file__).parent / "assets" / "this_is_a_test.wav"
+    
+    # Verify the test file exists
+    assert audio_path.exists(), f"Test audio file not found: {audio_path}"
+    
+    # Probe metadata using actual ffprobe
+    metadata = probe_metadata(str(audio_path))
+    
+    assert metadata is not None
+    
+    # Check that we get reasonable metadata for a WAV file
+    assert metadata["format"] == "pcm_s16le"  # Common WAV format
+    assert metadata["duration"] > 0  # Should have some duration
+    assert metadata["sample_rate"] > 0  # Should have a sample rate
+    assert metadata["channels"] > 0  # Should have at least one channel
+    assert metadata["file_size"] > 0  # File should have some size
+    
+    # Reasonable bounds for a short test audio file
+    assert 0.5 <= metadata["duration"] <= 10.0  # Between 0.5 and 10 seconds
+    assert 8000 <= metadata["sample_rate"] <= 96000  # Common sample rates
+    assert 1 <= metadata["channels"] <= 2  # Mono or stereo
+
+
+@pytest.mark.integration
+def test_probe_metadata_real_audio_file_detailed():
+    """Integration test: verify specific metadata fields from real audio file."""
+    audio_path = Path(__file__).parent / "assets" / "this_is_a_test.wav"
+    
+    # Verify the test file exists
+    assert audio_path.exists(), f"Test audio file not found: {audio_path}"
+    
+    metadata = probe_metadata(str(audio_path))
+    
+    assert metadata is not None
+    
+    # Check all required fields are present
+    required_fields = ["duration", "sample_rate", "channels", "format", "file_size"]
+    for field in required_fields:
+        assert field in metadata, f"Missing field: {field}"
+        assert metadata[field] is not None, f"Field {field} is None"
+    
+    # Check data types
+    assert isinstance(metadata["duration"], float)
+    assert isinstance(metadata["sample_rate"], int)
+    assert isinstance(metadata["channels"], int)
+    assert isinstance(metadata["format"], str)
+    assert isinstance(metadata["file_size"], int)
+
+
+@pytest.mark.integration  
+def test_probe_metadata_real_audio_consistency():
+    """Integration test: verify metadata is consistent across multiple calls."""
+    audio_path = Path(__file__).parent / "assets" / "this_is_a_test.wav"
+    
+    # Verify the test file exists
+    assert audio_path.exists(), f"Test audio file not found: {audio_path}"
+    
+    # Probe metadata multiple times
+    metadata1 = probe_metadata(str(audio_path))
+    metadata2 = probe_metadata(str(audio_path))
+    
+    assert metadata1 is not None
+    assert metadata2 is not None
+    
+    # Results should be identical
+    assert metadata1 == metadata2
+
+
+@pytest.mark.integration
+def test_generate_internal_filename_with_real_file():
+    """Integration test: generate filenames based on real audio file."""
+    audio_path = Path(__file__).parent / "assets" / "this_is_a_test.wav"
+    original_filename = audio_path.name
+    
+    # Generate multiple filenames
+    filename1 = generate_internal_filename(original_filename)
+    time.sleep(0.01)  # Small delay to ensure different timestamps
+    filename2 = generate_internal_filename(original_filename)
+    
+    # Both should preserve the .wav extension
+    assert filename1.endswith(".wav")
+    assert filename2.endswith(".wav")
+    
+    # Filenames should be different due to timestamp and UUID
+    assert filename1 != filename2
+    
+    # Both should follow the pattern: timestamp_uuid.wav
+    parts1 = filename1.replace(".wav", "").split("_")
+    parts2 = filename2.replace(".wav", "").split("_")
+    
+    assert len(parts1) == 2
+    assert len(parts2) == 2
+    
+    # Timestamps should be integers
+    timestamp1 = int(parts1[0])
+    timestamp2 = int(parts2[0])
+    assert timestamp2 >= timestamp1
+    
+    # UUIDs should be 8 characters each
+    assert len(parts1[1]) == 8
+    assert len(parts2[1]) == 8
+    assert parts1[1] != parts2[1]  # Different UUIDs
