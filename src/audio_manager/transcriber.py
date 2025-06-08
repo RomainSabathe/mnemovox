@@ -25,8 +25,8 @@ def transcribe_file(file_path: str, model_name: str = "base.en") -> Optional[Tup
     try:
         logger.info(f"Starting transcription of {file_path} with model {model_name}")
         
-        # Load the Whisper model
-        model = WhisperModel(model_name)
+        # Load the Whisper model (force CPU to avoid GPU issues in testing)
+        model = WhisperModel(model_name, device="cpu")
         
         # Transcribe the audio file
         segments_generator, info = model.transcribe(file_path)

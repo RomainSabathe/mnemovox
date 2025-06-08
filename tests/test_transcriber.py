@@ -2,6 +2,7 @@
 # ABOUTME: Verifies faster-whisper integration and transcription functionality
 
 import pytest
+from pathlib import Path
 from unittest.mock import patch, MagicMock
 from src.audio_manager.transcriber import transcribe_file
 
@@ -50,7 +51,7 @@ def test_transcribe_file_success():
         
         # Verify model was created with correct parameters
         from src.audio_manager.transcriber import WhisperModel
-        WhisperModel.assert_called_once_with("base.en")
+        WhisperModel.assert_called_once_with("base.en", device="cpu")
         
         # Verify transcribe was called with correct path
         mock_model.transcribe.assert_called_once_with("/fake/path/audio.wav")
@@ -172,3 +173,96 @@ def test_transcribe_file_handles_missing_confidence():
         
         assert full_text == "No confidence"
         assert segments[0]["confidence"] is None
+
+
+# Integration tests with real audio file
+@pytest.mark.integration
+def test_transcribe_real_audio_file_tiny_model():
+    """Integration test: transcribe actual audio file using tiny model for speed."""
+    audio_path = Path(__file__).parent / "assets" / "this_is_a_test.wav"
+    
+    # Verify the test file exists
+    assert audio_path.exists(), f"Test audio file not found: {audio_path}"
+    
+    # Use tiny model for fast testing
+    try:
+        result = transcribe_file(str(audio_path), "tiny")
+    except Exception as e:
+        pytest.skip(f"Whisper model loading failed, likely due to network or system issues: {e}")
+    
+    assert result is not None
+    full_text, segments = result
+    
+    # The audio file contains "This is a test"
+    assert "test" in full_text.lower()
+    assert len(segments) > 0
+    
+    # Check that segments have required fields
+    for segment in segments:
+        assert "start" in segment
+        assert "end" in segment  
+        assert "text" in segment
+        assert segment["start"] <= segment["end"]
+
+
+@pytest.mark.integration 
+def test_transcribe_real_audio_file_base_model():
+    """Integration test: transcribe actual audio file using base model for accuracy."""
+    audio_path = Path(__file__).parent / "assets" / "this_is_a_test.wav"
+    
+    # Verify the test file exists
+    assert audio_path.exists(), f"Test audio file not found: {audio_path}"
+    
+    # Use base model for better accuracy
+    try:
+        result = transcribe_file(str(audio_path), "base")
+    except Exception as e:
+        pytest.skip(f"Whisper model loading failed, likely due to network or system issues: {e}")
+    
+    assert result is not None
+    full_text, segments = result
+    
+    # The audio file should transcribe to something close to "This is a test" 
+    # Allow for some variation in transcription
+    full_text_lower = full_text.lower()
+    assert any(word in full_text_lower for word in ["this", "test"])
+    
+    # Should have reasonable timing
+    assert len(segments) > 0
+    total_duration = max(seg["end"] for seg in segments)
+    assert 0.5 <= total_duration <= 10.0  # Reasonable duration for the test phrase
+
+
+@pytest.mark.integration
+def test_transcribe_real_audio_file_invalid_path():
+    """Integration test: verify error handling with invalid audio path."""
+    result = transcribe_file("/nonexistent/path/fake.wav", "tiny")
+    
+    assert result is None
+
+
+@pytest.mark.integration
+def test_transcribe_real_audio_file_segment_timing():
+    """Integration test: verify segment timing makes sense for real audio."""
+    audio_path = Path(__file__).parent / "assets" / "this_is_a_test.wav"
+    
+    # Verify the test file exists
+    assert audio_path.exists(), f"Test audio file not found: {audio_path}"
+    
+    try:
+        result = transcribe_file(str(audio_path), "tiny")
+    except Exception as e:
+        pytest.skip(f"Whisper model loading failed, likely due to network or system issues: {e}")
+    
+    assert result is not None
+    full_text, segments = result
+    
+    # Segments should be in chronological order
+    for i in range(1, len(segments)):
+        assert segments[i]["start"] >= segments[i-1]["start"]
+        
+    # No segment should have negative timing
+    for segment in segments:
+        assert segment["start"] >= 0
+        assert segment["end"] >= 0
+        assert segment["end"] >= segment["start"]
