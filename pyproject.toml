@@ -1,7 +1,14 @@
 [project]
 name = "audio-recordings-manager"
 version = "0.1.0"
-description = "Add your description here"
+description = "Self-hosted audio recording manager with automatic transcription"
 readme = "README.md"
-requires-python = ">=3.12"
-dependencies = []
+requires-python = ">=3.9"
+dependencies = [
+    "fastapi",
+    "watchdog",
+    "faster-whisper",
+    "pytest",
+    "sqlalchemy",
+    "PyYAML",
+]

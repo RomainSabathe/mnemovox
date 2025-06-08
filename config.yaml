@@ -1,0 +1,5 @@
+monitored_directory: ./incoming
+storage_path: ./data/audio
+whisper_model: base.en
+sample_rate: 16000
+max_concurrent_transcriptions: 2

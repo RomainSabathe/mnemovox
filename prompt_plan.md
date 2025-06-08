@@ -1,4 +1,4 @@
-For all these prompts, refer to `spec.md` to understand the global context of what you
+For all these prompts, refer to **@spec.md** to understand the global context of what you
 are building.
 
 ```text
