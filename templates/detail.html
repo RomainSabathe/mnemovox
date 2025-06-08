@@ -74,7 +74,9 @@
 
 <h2>Audio Player</h2>
 <audio class="audio-player" controls>
-    <source src="/audio/{{ recording.storage_path }}" type="audio/{{ recording.audio_format }}">
+    {% set path_parts = recording.storage_path.split('.') %}
+    {% set file_ext = path_parts[-1].lower() if '.' in recording.storage_path else 'wav' %}
+    <source src="/audio/{{ recording.storage_path }}" type="audio/{% if file_ext == 'mp3' %}mpeg{% elif file_ext == 'm4a' %}mp4{% else %}{{ file_ext }}{% endif %}">
     Your browser does not support the audio element.
 </audio>
 
