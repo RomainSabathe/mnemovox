@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}All Recordings - Audio Recording Manager{% endblock %}
+
+{% block content %}
+<h1>Audio Recordings</h1>
+
+{% if recordings %}
+<table>
+    <thead>
+        <tr>
+            <th>Filename</th>
+            <th>Duration</th>
+            <th>Format</th>
+            <th>Import Date</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for recording in recordings %}
+        <tr>
+            <td>
+                <strong>{{ recording.original_filename }}</strong>
+            </td>
+            <td>
+                {% if recording.duration_seconds %}
+                    {{ "%.1f"|format(recording.duration_seconds) }}s
+                {% else %}
+                    -
+                {% endif %}
+            </td>
+            <td>
+                {{ recording.audio_format|upper if recording.audio_format else '-' }}
+            </td>
+            <td>
+                {{ recording.import_timestamp.strftime('%Y-%m-%d %H:%M') if recording.import_timestamp else '-' }}
+            </td>
+            <td>
+                <span class="status {{ recording.transcript_status }}">
+                    {{ recording.transcript_status|title }}
+                </span>
+            </td>
+            <td>
+                <a href="/recordings/{{ recording.id }}">View Details</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>No recordings found. Upload some audio files to the monitored directory to get started.</p>
+{% endif %}
+
+<div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+    <h3>How to Add Recordings</h3>
+    <p>Copy audio files (.wav, .mp3, .m4a) to the monitored directory to automatically import and transcribe them.</p>
+</div>
+{% endblock %}

@@ -10,10 +10,14 @@ readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
     "fastapi",
+    "uvicorn",
+    "jinja2",
+    "python-multipart",
     "watchdog",
     "faster-whisper",
     "pytest",
     "pytest-asyncio",
+    "httpx",
     "sqlalchemy",
     "PyYAML",
 ]

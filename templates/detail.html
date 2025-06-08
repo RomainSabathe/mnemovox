@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block title %}{{ recording.original_filename }} - Audio Recording Manager{% endblock %}
+
+{% block content %}
+<h1>{{ recording.original_filename }}</h1>
+
+<div class="recording-meta">
+    <div class="meta-item">
+        <span class="meta-label">Status:</span>
+        <span class="status {{ recording.transcript_status }}">
+            {{ recording.transcript_status|title }}
+        </span>
+    </div>
+    <div class="meta-item">
+        <span class="meta-label">Duration:</span>
+        <span>
+            {% if recording.duration_seconds %}
+                {{ "%.1f"|format(recording.duration_seconds) }} seconds
+            {% else %}
+                Unknown
+            {% endif %}
+        </span>
+    </div>
+    <div class="meta-item">
+        <span class="meta-label">Format:</span>
+        <span>{{ recording.audio_format|upper if recording.audio_format else 'Unknown' }}</span>
+    </div>
+    <div class="meta-item">
+        <span class="meta-label">Sample Rate:</span>
+        <span>
+            {% if recording.sample_rate %}
+                {{ recording.sample_rate }} Hz
+            {% else %}
+                Unknown
+            {% endif %}
+        </span>
+    </div>
+    <div class="meta-item">
+        <span class="meta-label">Channels:</span>
+        <span>
+            {% if recording.channels %}
+                {{ recording.channels }}
+            {% else %}
+                Unknown
+            {% endif %}
+        </span>
+    </div>
+    <div class="meta-item">
+        <span class="meta-label">File Size:</span>
+        <span>
+            {% if recording.file_size_bytes %}
+                {{ "%.1f"|format(recording.file_size_bytes / 1024) }} KB
+            {% else %}
+                Unknown
+            {% endif %}
+        </span>
+    </div>
+    <div class="meta-item">
+        <span class="meta-label">Imported:</span>
+        <span>
+            {% if recording.import_timestamp %}
+                {{ recording.import_timestamp.strftime('%Y-%m-%d %H:%M:%S') }}
+            {% else %}
+                Unknown
+            {% endif %}
+        </span>
+    </div>
+    <div class="meta-item">
+        <span class="meta-label">Language:</span>
+        <span>{{ recording.transcript_language|upper if recording.transcript_language else 'Auto-detect' }}</span>
+    </div>
+</div>
+
+<h2>Audio Player</h2>
+<audio class="audio-player" controls>
+    <source src="/audio/{{ recording.storage_path }}" type="audio/{{ recording.audio_format }}">
+    Your browser does not support the audio element.
+</audio>
+
+<h2>Transcript</h2>
+{% if recording.transcript_status == 'complete' and recording.transcript_text %}
+    <div class="transcript">
+        {{ recording.transcript_text }}
+    </div>
+    
+    {% if recording.transcript_segments %}
+    <h3>Segments</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Start</th>
+                <th>End</th>
+                <th>Text</th>
+                <th>Confidence</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for segment in recording.transcript_segments %}
+            <tr>
+                <td>{{ "%.1f"|format(segment.start) }}s</td>
+                <td>{{ "%.1f"|format(segment.end) }}s</td>
+                <td>{{ segment.text }}</td>
+                <td>
+                    {% if segment.confidence %}
+                        {{ "%.0f"|format(segment.confidence * 100) }}%
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+    
+{% elif recording.transcript_status == 'pending' %}
+    <div class="transcript">
+        <em>Transcription in progress... Please check back later.</em>
+    </div>
+{% elif recording.transcript_status == 'error' %}
+    <div class="transcript">
+        <em>Transcription failed. The audio file may be corrupted or in an unsupported format.</em>
+    </div>
+{% else %}
+    <div class="transcript">
+        <em>No transcript available.</em>
+    </div>
+{% endif %}
+
+<div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+    <a href="/recordings">&larr; Back to All Recordings</a>
+</div>
+{% endblock %}
