@@ -15,6 +15,9 @@ class Config:
     whisper_model: str = "base.en"
     sample_rate: int = 16000
     max_concurrent_transcriptions: int = 2
+    upload_temp_path: str = "./data/uploads"
+    fts_enabled: bool = True
+    items_per_page: int = 20
 
 
 def get_config(config_path: str = "config.yaml") -> Config:
@@ -51,5 +54,14 @@ def get_config(config_path: str = "config.yaml") -> Config:
     
     if isinstance(yaml_data.get('max_concurrent_transcriptions'), int):
         config.max_concurrent_transcriptions = yaml_data['max_concurrent_transcriptions']
+    
+    if isinstance(yaml_data.get('upload_temp_path'), str):
+        config.upload_temp_path = yaml_data['upload_temp_path']
+    
+    if isinstance(yaml_data.get('fts_enabled'), bool):
+        config.fts_enabled = yaml_data['fts_enabled']
+    
+    if isinstance(yaml_data.get('items_per_page'), int):
+        config.items_per_page = yaml_data['items_per_page']
     
     return config

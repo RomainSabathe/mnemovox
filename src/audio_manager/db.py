@@ -1,7 +1,7 @@
 # ABOUTME: Database module for audio recordings metadata
 # ABOUTME: Handles SQLite database initialization and session management
 
-from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, Text, JSON
+from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, Text, JSON, text
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.sql import func
 from pathlib import Path
@@ -31,12 +31,13 @@ class Recording(Base):
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
 
 
-def init_db(db_path: str) -> None:
+def init_db(db_path: str, fts_enabled: bool = True) -> None:
     """
     Initialize the database and create tables.
     
     Args:
         db_path: Path to the SQLite database file
+        fts_enabled: Whether to create FTS5 virtual table for search
     """
     # Ensure parent directory exists
     Path(db_path).parent.mkdir(parents=True, exist_ok=True)
@@ -44,6 +45,19 @@ def init_db(db_path: str) -> None:
     # Create engine and tables
     engine = create_engine(f'sqlite:///{db_path}')
     Base.metadata.create_all(engine)
+    
+    # Create FTS5 virtual table if enabled
+    if fts_enabled:
+        with engine.connect() as conn:
+            conn.execute(text(
+                """
+                CREATE VIRTUAL TABLE IF NOT EXISTS recordings_fts USING fts5(
+                    original_filename,
+                    transcript_text
+                )
+                """
+            ))
+            conn.commit()
 
 
 def get_session(db_path: str):
@@ -59,3 +73,34 @@ def get_session(db_path: str):
     engine = create_engine(f'sqlite:///{db_path}')
     Session = sessionmaker(bind=engine)
     return Session()
+
+
+def sync_fts(session, recording_id: int) -> None:
+    """
+    Sync a recording's data to the FTS table for search.
+    
+    Args:
+        session: SQLAlchemy session
+        recording_id: ID of the recording to sync
+    """
+    # Get the recording data
+    recording = session.query(Recording).filter(Recording.id == recording_id).first()
+    if not recording:
+        return
+    
+    # Handle null transcript text
+    transcript_text = recording.transcript_text or ""
+    
+    # Delete existing FTS entry if it exists
+    session.execute(
+        text("DELETE FROM recordings_fts WHERE rowid = :recording_id"),
+        {"recording_id": recording_id}
+    )
+    
+    # Insert/update FTS entry
+    session.execute(
+        text("INSERT INTO recordings_fts(rowid, original_filename, transcript_text) VALUES (:recording_id, :filename, :transcript)"),
+        {"recording_id": recording_id, "filename": recording.original_filename, "transcript": transcript_text}
+    )
+    
+    session.commit()
