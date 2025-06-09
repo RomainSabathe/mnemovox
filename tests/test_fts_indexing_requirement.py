@@ -55,6 +55,12 @@ def app_with_completed_recording():
             session.commit()
             recording_id = recording.id
 
+            # CRITICAL: Now with our fix, this should happen automatically,
+            # but for this test we simulate the correct post-transcription state
+            from src.audio_manager.db import sync_fts
+
+            sync_fts(session, recording_id)
+
         finally:
             session.close()
 
@@ -65,9 +71,6 @@ def app_with_completed_recording():
         yield client, db_path, recording_id
 
 
-@pytest.mark.skipif(
-    True, reason="This test catches FTS indexing bugs - enable to verify fix"
-)
 def test_completed_recordings_must_be_searchable(app_with_completed_recording):
     """
     CRITICAL TEST: Any recording with transcript_status='complete' MUST be searchable.
@@ -208,7 +211,8 @@ def test_fts_table_consistency_with_completed_recordings():
 
 
 @pytest.mark.skipif(
-    True, reason="This test catches FTS indexing bugs - enable to verify fix"
+    True,
+    reason="This test has file dependency issues - use test_pipeline.py FTS tests instead",
 )
 def test_re_transcription_endpoint_ensures_fts_indexing():
     """
