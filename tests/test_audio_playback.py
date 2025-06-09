@@ -111,7 +111,7 @@ def test_audio_player_correct_mime_types(test_client):
     response = test_client.get("/recordings/1")
     assert response.status_code == 200
     content = response.text
-    assert '<audio class="audio-player" controls>' in content
+    assert 'id="audio-player"' in content and 'controls' in content
     assert 'type="audio/wav"' in content
     assert 'src="/audio/2023/2023-12-01/1609459200_wav_test.wav"' in content
 
@@ -154,7 +154,7 @@ def test_audio_player_html_structure(test_client):
 
     # Check for proper HTML structure
     assert "<h2>Audio Player</h2>" in content
-    assert '<audio class="audio-player" controls>' in content
+    assert 'id="audio-player"' in content and 'controls' in content
     assert '<source src="/audio/' in content
     assert 'type="audio/' in content
     assert "Your browser does not support the audio element." in content
@@ -179,7 +179,7 @@ def test_audio_player_with_real_audio_file(test_client):
     content = response.text
 
     # Verify audio player is present
-    assert '<audio class="audio-player" controls>' in content
+    assert 'id="audio-player"' in content and 'controls' in content
     assert "controls" in content
 
     # Verify the audio file is actually downloadable

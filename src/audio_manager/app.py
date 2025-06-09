@@ -4,6 +4,7 @@
 from fastapi import FastAPI, Request, HTTPException, Depends, UploadFile, File, status
 from fastapi.responses import HTMLResponse, FileResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 from typing import Optional
 import uuid
@@ -29,8 +30,9 @@ def create_app(config: Config, db_path: str) -> FastAPI:
         version="1.0.0",
     )
 
-    # Configure templates
+    # Configure templates and static files
     templates = Jinja2Templates(directory="templates")
+    app.mount("/static", StaticFiles(directory="static"), name="static")
 
     # Dependency to get database session
     def get_db_session():
@@ -102,7 +104,9 @@ def create_app(config: Config, db_path: str) -> FastAPI:
             raise HTTPException(status_code=404, detail="Recording not found")
 
         return templates.TemplateResponse(
-            request=request, name="detail.html", context={"recording": recording}
+            request=request,
+            name="recording_detail.html",
+            context={"recording": recording},
         )
 
     @app.get("/audio/{path:path}")
@@ -234,6 +238,27 @@ def create_app(config: Config, db_path: str) -> FastAPI:
             "updated_at": recording.updated_at.isoformat()
             if recording.updated_at
             else None,
+        }
+
+    @app.get("/api/recordings/{recording_id}/segments")
+    async def api_recording_segments(
+        recording_id: int, session=Depends(get_db_session)
+    ):
+        """API endpoint to get transcript segments for a specific recording."""
+        recording = session.query(Recording).filter_by(id=recording_id).first()
+
+        if not recording:
+            raise HTTPException(status_code=404, detail="Recording not found")
+
+        # Return segments data
+        segments = (
+            recording.transcript_segments if recording.transcript_segments else []
+        )
+
+        return {
+            "recording_id": recording.id,
+            "total_segments": len(segments),
+            "segments": segments,
         }
 
     @app.post("/api/recordings/upload")
