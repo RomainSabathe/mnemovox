@@ -1,4 +1,6 @@
-# Audio Recording Manager
+# MnemoVox
+
+*Mnemosyne + Vox: Memory through Voice*
 
 Self-hosted audio recording manager with automatic transcription using Faster-Whisper.
 
