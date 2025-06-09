@@ -20,53 +20,61 @@ import uuid
 import shutil
 from datetime import datetime
 from .config import Config
-from .db import get_session, Recording
+from .db import get_session, Recording, sync_fts
 from sqlalchemy import text
 
 
 def run_transcription_task(recording_id: int, db_path_str: str):
     """Background task to process transcription for a recording."""
-    # This is a placeholder for the actual transcription logic
-    # In a real implementation, this would:
-    # 1. Get the recording from the database
-    # 2. Load the audio file from storage
-    # 3. Run the transcription service (e.g., Whisper)
-    # 4. Update the database with results
-
-    # For testing purposes, we'll just leave the status as "pending"
-    # and not actually process the transcription
-
-    # In a real application, you would implement the actual transcription here
+    session = get_session(db_path_str)
     try:
-        # Try to import the transcriber module if it exists
-        from .transcriber import process_recording  # type: ignore
+        recording = session.query(Recording).filter_by(id=recording_id).first()
+        if not recording:
+            return
 
-        # Get a fresh database session for the background task
-        session = get_session(db_path_str)
+        # Try to transcribe the recording
         try:
-            recording = session.query(Recording).filter_by(id=recording_id).first()
-            if recording:
-                # Process the recording using existing transcriber logic
-                process_recording(recording, session)
+            from .transcriber import transcribe_file
+
+            # Get the full path to the audio file
+            audio_path = recording.storage_path
+
+            # Perform transcription
+            result = transcribe_file(audio_path)
+
+            if result:
+                full_text, segments = result
+
+                # Update recording with transcript data
+                recording.transcript_status = "complete"
+                recording.transcript_text = full_text
+                recording.transcript_segments = segments
+                recording.transcript_language = "en"  # TODO: detect language
+                recording.updated_at = datetime.now()
+
                 session.commit()
-        finally:
-            session.close()
 
-    except ImportError:
-        # If transcriber module doesn't exist, just leave as pending for now
-        # This allows tests to verify the API behavior without failing transcription
-        pass
-    except Exception:
-        # On any error, mark the recording as failed
-        session = get_session(db_path_str)
-        try:
-            recording = session.query(Recording).filter_by(id=recording_id).first()
-            if recording:
+                # CRITICAL: Sync to FTS table for search functionality
+                sync_fts(session, recording.id)
+
+            else:
+                # Transcription failed
                 recording.transcript_status = "error"
                 recording.updated_at = datetime.now()
                 session.commit()
-        finally:
-            session.close()
+
+        except ImportError:
+            # If transcriber module doesn't exist, leave as pending
+            # This allows tests to verify API behavior without failing transcription
+            pass
+        except Exception:
+            # On any transcription error, mark as failed
+            recording.transcript_status = "error"
+            recording.updated_at = datetime.now()
+            session.commit()
+
+    finally:
+        session.close()
 
 
 def create_app(config: Config, db_path: str) -> FastAPI:
