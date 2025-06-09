@@ -326,7 +326,10 @@ def create_app(config: Config, db_path: str) -> FastAPI:
         }
 
     @app.post("/api/recordings/upload")
-    async def api_upload_recording(file: UploadFile = File(...)):
+    async def api_upload_recording(
+        file: UploadFile = File(...),
+        background_tasks: BackgroundTasks = BackgroundTasks(),
+    ):
         """API endpoint to upload audio files for processing."""
         # Validate file extension
         if not file.filename:
@@ -426,6 +429,11 @@ def create_app(config: Config, db_path: str) -> FastAPI:
 
                     session.add(recording)
                     session.commit()
+
+                    # Queue background transcription task
+                    background_tasks.add_task(
+                        run_transcription_task, recording.id, db_path
+                    )
 
                     return JSONResponse(
                         status_code=status.HTTP_201_CREATED,
