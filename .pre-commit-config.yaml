@@ -4,12 +4,11 @@ repos:
     hooks:
       - id: ruff
         name: ruff lint
-        description: Run ruff linter (check only)
-        args: [--exit-non-zero-on-fix]
+        description: Run ruff linter and apply fixes
+        args: [--fix, --exit-non-zero-on-fix]
       - id: ruff-format
-        name: ruff format check
-        description: Check ruff formatting compliance
-        args: [--check, --diff]
+        name: ruff format
+        description: Apply ruff formatting
 
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.7.1

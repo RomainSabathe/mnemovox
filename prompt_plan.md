@@ -308,7 +308,7 @@ Deliver:
 ---
 
 ```text
-PROMPT D/8: Detail Page & Interactive Transcript
+PROMPT D/8: Detail Page & Interactive Transcript ✅ COMPLETED
 
 Context:
   Phase 2 UI: detail page + JS-driven transcript.
