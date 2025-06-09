@@ -261,3 +261,195 @@ Phase 4:
 - FastAPI
 - SQLite3
 - Watchdog (for file import)
+
+---
+
+Audio Recording Manager – Phase 2 Developer Specification
+Version 2.0
+Date: [Insert Date]
+Prerequisite: Phase 1 MVP (local ingestion + transcription + plain-transcript UI) is fully implemented and stable.
+
+    Phase 2 Goals
+    • Add an interactive, synchronized transcript UI (highlight & click-to-seek)
+    • Introduce Web-based audio upload
+    • Provide a recordings listing page
+    • Implement full-text search over transcripts
+    • Allow manual re-transcription of recordings
+
+    High-Level Architecture
+
+Backend
+– FastAPI (Python 3.9+) with Uvicorn/Gunicorn for async request handling
+– SQLite with FTS5 extension for on-disk full-text indexing (or switch to PostgreSQL if preferred)
+– A background worker for transcription tasks (e.g. Celery + Redis, RQ, or FastAPI’s built-in BackgroundTasks)
+
+Frontend
+– Server-rendered templates via Jinja2 + Vanilla JavaScript (no heavy SPA)
+– HTML5 <audio> element for playback
+– Fetch API for JSON calls (listings, search, segment data, upload)
+
+Storage
+– Audio files in /data/audio/YYYY/YYYY-MM-DD/… (Phase 1)
+– Incoming uploads go to a temporary folder (/data/uploads/) before processing
+– Transcript segments remain stored as JSON in DB
+
+Configuration
+– config.yml (or .env) with keys:
+• monitored_directory
+• storage_path
+• upload_temp_path
+• transcription_backend
+• fts_enabled: true
+• items_per_page: 20
+
+    Data Model & Indexing
+
+3.1 recordings table (extends Phase 1)
+• id (UUID PK)
+• original_filename, internal_filename, storage_path, import_timestamp,… (unchanged)
+• transcript_text (text)
+• transcript_segments (JSON)
+• transcript_status (pending/complete/error)
+• transcript_language
+• created_at, updated_at
+
+3.2 Full-Text Search Index
+If SQLite:
+CREATE VIRTUAL TABLE recordings_fts USING fts5(
+transcript_text, original_filename, content='recordings', content_rowid='rowid'
+);
+On INSERT/UPDATE of recordings:
+– Populate / sync recordings_fts with transcript_text + original_filename
+
+    API Endpoints
+
+All endpoints prefixed with /api for JSON, and non-/api for HTML pages.
+
+4.1 Recording Upload
+POST /api/recordings/upload
+– multipart/form-data: file (audio)
+– Response 201 { id, status:"pending", message } or 400 on validation error
+
+4.2 Listings
+GET /api/recordings?page=&per_page=
+– Params: page (default 1), per_page (configurable)
+– Returns JSON list of { id, original_filename, date, duration_seconds, transcript_status }
+
+HTML page: GET /recordings → server-rendered Jinja template that loads the first page via API and paginates
+
+4.3 Recording Details
+GET /api/recordings/{id}
+– Returns { id, original_filename, audio_url, transcript_text, transcript_language, transcript_status }
+
+GET /api/recordings/{id}/segments
+– Returns transcript_segments JSON array:
+[ { start, end, text, confidence }, … ]
+
+HTML page: GET /recordings/{id}
+– Renders player + transcript container
+– JS fetches /segments and wires up highlight/seek
+
+4.4 Re-transcription
+POST /api/recordings/{id}/transcribe
+– Enqueue transcription job, set transcript_status=pending
+– Returns { id, status:"pending" }
+
+4.5 Search
+GET /api/search?q=&page=&per_page=
+– Validates q length ≥3
+– Queries recordings_fts for transcript_text and original_filename
+– Returns paginated list of matches with an excerpt and recording metadata
+
+HTML page: GET /search?q=…
+– Server-rendered search form + container; initial results loaded via API
+
+    Frontend Interaction
+
+5.1 Synchronized Transcript UI
+– On page load (recordings/{id}):
+
+    Render <audio id="player"> with src=audio_url
+    Empty <div id="transcript"> placeholder
+    JS fetches /segments → builds HTML:
+    <span class="segment" data-start="…" data-end="…">…</span>
+    Attach event listener “timeupdate” on audio:
+    – currentTime = player.currentTime
+    – Find active segment (binary search or linear scan)
+    – Add CSS class .highlight to the matching span; remove from previous
+    On click of a .segment element: player.currentTime = span.dataset.start
+
+5.2 Web Upload Form
+– Page GET /recordings/upload: simple form with <input type="file">
+– On submit: JS intercepts, performs fetch POST /api/recordings/upload, shows success/error
+
+5.3 Listings & Pagination
+– /recordings page: fetch first page, render table/list of recordings
+– Prev/Next controls fetch via API
+
+5.4 Search UI
+– /search?q=… page: form + results container
+– JS on form submit prevents full reload, fetches /api/search, updates container
+
+    Error Handling
+
+6.1 Upload Errors
+– Invalid file type → 400 { error:"Unsupported format" }
+– Large file limit → 413 Response
+– On the frontend, display inline error message
+
+6.2 Transcription Errors
+– If transcription backend throws → catch in worker, update DB transcript_status="error" with log
+– On detail page, if status=error, show “Transcription failed; retry?” button
+
+6.3 API Errors
+– 404 for missing recording → JSON { error:"Not found" }, HTML 404 page
+– 422 for invalid query params → JSON validation errors (FastAPI auto)
+
+    Background Tasks & Queue
+
+– Use FastAPI’s BackgroundTasks or Celery:
+• Task: run_transcription(recording_id)
+– Load file, call faster-whisper, parse result
+– Update DB transcript_text + transcript_segments + transcript_status="complete"
+– On exception: transcript_status="error", write error log
+
+– Ensure max concurrency = config.max_concurrent_transcriptions
+
+    Testing Plan
+
+8.1 Unit Tests
+– API input validation (upload, search query length)
+– DB helpers: FTS index sync on insert/update
+– Background task: mock faster-whisper, ensure DB updated correctly
+– Segment parsing & HTML generation logic
+
+8.2 Integration Tests
+– Use FastAPI’s TestClient:
+• POST /api/recordings/upload with valid/invalid files
+• GET /api/recordings, /api/recordings/{id}, /api/recordings/{id}/segments
+• POST /api/recordings/{id}/transcribe → status transitions
+• GET /api/search?q=… → correct hits & pagination
+
+8.3 Frontend (E2E) Tests
+– Headless browser (Playwright or Selenium):
+• Upload a small audio → wait for transcription → load detail page → segments fetched
+• Play audio, verify highlight moves as timeupdate fires (mock currentTime)
+• Click on a transcript segment → assert audio.currentTime set correctly
+• Search for known phrase → results displayed
+
+8.4 Performance Tests
+– Seed DB with 1,000 transcripts of ~5 min each → benchmark search latency (<200 ms)
+– Upload concurrency test: 5 simultaneous uploads
+
+    Deployment & Configuration
+
+– Dockerfile / docker-compose can orchestrate: FastAPI + Uvicorn + Redis (if Celery) + SQLite volume
+– ENV vars override config.yml for:
+• STORAGE_PATH, UPLOAD_PATH, REDIS_URL, MAX_TRANSCRIBE_JOBS
+– Service startup:
+
+    Run DB migrations (create tables + FTS)
+
+    Start FastAPI server
+
+    Launch worker processes
