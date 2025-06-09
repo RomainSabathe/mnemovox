@@ -6,7 +6,7 @@ import logging
 from pathlib import Path
 from typing import List
 from .config import Config
-from .db import get_session, Recording
+from .db import get_session, Recording, sync_fts
 from .transcriber import transcribe_file
 
 # Configure logging
@@ -146,7 +146,13 @@ class TranscriptionPipeline:
                     record.transcript_language = "en"
 
                 session.commit()
-                logger.info(f"Updated record {record_id} with transcription results")
+
+                # CRITICAL: Index in FTS for search functionality
+                sync_fts(session, record_id)
+
+                logger.info(
+                    f"Updated record {record_id} with transcription results and FTS indexing"
+                )
             else:
                 logger.error(f"Record {record_id} not found for update")
 
