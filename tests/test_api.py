@@ -226,17 +226,23 @@ def test_recordings_list_json_api(test_client):
     assert response.headers["content-type"] == "application/json"
 
     data = response.json()
-    assert isinstance(data, list)
-    assert len(data) == 3
+    assert isinstance(data, dict)
+    assert "recordings" in data
+    assert "pagination" in data
+
+    recordings = data["recordings"]
+    assert len(recordings) == 3
 
     # Check that we have the expected recordings (order may vary)
-    filenames = [r["original_filename"] for r in data]
+    filenames = [r["original_filename"] for r in recordings]
     assert "meeting_notes.wav" in filenames
     assert "voice_memo.mp3" in filenames
     assert "interview.m4a" in filenames
 
     # Find and check the completed recording
-    completed_recording = next(r for r in data if r["transcript_status"] == "complete")
+    completed_recording = next(
+        r for r in recordings if r["transcript_status"] == "complete"
+    )
     assert completed_recording["original_filename"] == "meeting_notes.wav"
     assert completed_recording["duration_seconds"] == 120.5
 
@@ -346,7 +352,10 @@ def test_api_with_real_audio_file_complete_workflow(test_config, test_db_with_re
     response = client.get("/api/recordings")
     assert response.status_code == 200
     data = response.json()
-    real_recordings = [r for r in data if r["original_filename"] == "real_api_test.wav"]
+    recordings = data["recordings"]
+    real_recordings = [
+        r for r in recordings if r["original_filename"] == "real_api_test.wav"
+    ]
     assert len(real_recordings) == 1
 
     real_record = real_recordings[0]

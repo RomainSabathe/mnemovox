@@ -5,7 +5,7 @@ from fastapi import FastAPI, Request, HTTPException, Depends, UploadFile, File, 
 from fastapi.responses import HTMLResponse, FileResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from pathlib import Path
-from typing import List
+from typing import Optional
 import uuid
 import shutil
 from .config import Config
@@ -46,14 +46,49 @@ def create_app(config: Config, db_path: str) -> FastAPI:
         return RedirectResponse(url="/recordings", status_code=302)
 
     @app.get("/recordings", response_class=HTMLResponse)
-    async def recordings_list(request: Request, session=Depends(get_db_session)):
-        """Display list of all recordings."""
+    async def recordings_list(
+        request: Request, page: int = 1, session=Depends(get_db_session)
+    ):
+        """Display paginated list of recordings."""
+        # Validate page parameter
+        if page < 0:
+            page = 1
+        elif page == 0:
+            page = 1
+
+        per_page = config.items_per_page
+
+        # Get total count
+        total = session.query(Recording).count()
+
+        # Calculate pagination metadata
+        pages = (total + per_page - 1) // per_page  # Ceiling division
+        has_prev = page > 1
+        has_next = page < pages
+
+        # Get recordings for current page
+        offset = (page - 1) * per_page
         recordings = (
-            session.query(Recording).order_by(Recording.import_timestamp.desc()).all()
+            session.query(Recording)
+            .order_by(Recording.import_timestamp.desc(), Recording.id.desc())
+            .offset(offset)
+            .limit(per_page)
+            .all()
         )
 
+        pagination = {
+            "page": page,
+            "per_page": per_page,
+            "total": total,
+            "pages": pages,
+            "has_prev": has_prev,
+            "has_next": has_next,
+        }
+
         return templates.TemplateResponse(
-            request=request, name="list.html", context={"recordings": recordings}
+            request=request,
+            name="recordings_list.html",
+            context={"recordings": recordings, "pagination": pagination},
         )
 
     @app.get("/recordings/{recording_id}", response_class=HTMLResponse)
@@ -92,34 +127,81 @@ def create_app(config: Config, db_path: str) -> FastAPI:
         )
 
     # API endpoints
-    @app.get("/api/recordings", response_model=List[dict])
-    async def api_recordings_list(session=Depends(get_db_session)):
-        """API endpoint to get list of all recordings."""
+    @app.get("/api/recordings")
+    async def api_recordings_list(
+        page: int = 1, per_page: Optional[int] = None, session=Depends(get_db_session)
+    ):
+        """API endpoint to get paginated list of recordings."""
+        # Validate parameters
+        if page < 0:
+            raise HTTPException(
+                status_code=400, detail={"error": "page must be positive"}
+            )
+        elif page == 0:
+            page = 1
+
+        if per_page is None:
+            per_page = config.items_per_page
+
+        if per_page < 1:
+            raise HTTPException(
+                status_code=400, detail={"error": "per_page must be positive"}
+            )
+
+        if per_page > 100:
+            raise HTTPException(
+                status_code=400, detail={"error": "per_page cannot exceed 100"}
+            )
+
+        # Get total count
+        total = session.query(Recording).count()
+
+        # Calculate pagination metadata
+        pages = (total + per_page - 1) // per_page  # Ceiling division
+        has_prev = page > 1
+        has_next = page < pages
+
+        # Get recordings for current page
+        offset = (page - 1) * per_page
         recordings = (
-            session.query(Recording).order_by(Recording.import_timestamp.desc()).all()
+            session.query(Recording)
+            .order_by(Recording.import_timestamp.desc(), Recording.id.desc())
+            .offset(offset)
+            .limit(per_page)
+            .all()
         )
 
-        return [
-            {
-                "id": r.id,
-                "original_filename": r.original_filename,
-                "internal_filename": r.internal_filename,
-                "storage_path": r.storage_path,
-                "import_timestamp": r.import_timestamp.isoformat()
-                if r.import_timestamp
-                else None,
-                "duration_seconds": r.duration_seconds,
-                "audio_format": r.audio_format,
-                "sample_rate": r.sample_rate,
-                "channels": r.channels,
-                "file_size_bytes": r.file_size_bytes,
-                "transcript_status": r.transcript_status,
-                "transcript_language": r.transcript_language,
-                "created_at": r.created_at.isoformat() if r.created_at else None,
-                "updated_at": r.updated_at.isoformat() if r.updated_at else None,
-            }
-            for r in recordings
-        ]
+        return {
+            "recordings": [
+                {
+                    "id": r.id,
+                    "original_filename": r.original_filename,
+                    "internal_filename": r.internal_filename,
+                    "storage_path": r.storage_path,
+                    "import_timestamp": r.import_timestamp.isoformat()
+                    if r.import_timestamp
+                    else None,
+                    "duration_seconds": r.duration_seconds,
+                    "audio_format": r.audio_format,
+                    "sample_rate": r.sample_rate,
+                    "channels": r.channels,
+                    "file_size_bytes": r.file_size_bytes,
+                    "transcript_status": r.transcript_status,
+                    "transcript_language": r.transcript_language,
+                    "created_at": r.created_at.isoformat() if r.created_at else None,
+                    "updated_at": r.updated_at.isoformat() if r.updated_at else None,
+                }
+                for r in recordings
+            ],
+            "pagination": {
+                "page": page,
+                "per_page": per_page,
+                "total": total,
+                "pages": pages,
+                "has_prev": has_prev,
+                "has_next": has_next,
+            },
+        }
 
     @app.get("/api/recordings/{recording_id}")
     async def api_recording_detail(recording_id: int, session=Depends(get_db_session)):

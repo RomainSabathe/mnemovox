@@ -230,7 +230,7 @@ HTML pages
 Phase 2
 
 ```text
-PROMPT A/8: Config & FTS Setup
+PROMPT A/8: Config & FTS Setup ✅ COMPLETED
 
 Context:
   We’ve completed Phase 1. Now Phase 2 needs:
@@ -258,7 +258,7 @@ Deliver:
 ---
 
 ```text
-PROMPT B/8: API Upload Endpoint
+PROMPT B/8: API Upload Endpoint ✅ COMPLETED
 
 Context:
   Phase 2 requires web upload:

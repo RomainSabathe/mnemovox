@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+
+{% block title %}All Recordings - Audio Recording Manager{% endblock %}
+
+{% block content %}
+<h1>Audio Recordings</h1>
+
+{% if recordings %}
+<div style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+    <div>
+        <strong>{{ pagination.total }}</strong> recording{{ 's' if pagination.total != 1 else '' }} total
+        (Page {{ pagination.page }} of {{ pagination.pages }})
+    </div>
+    <div>
+        <a href="/recordings/upload" style="background-color: #007bff; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px;">
+            Upload New Recording
+        </a>
+    </div>
+</div>
+
+<table>
+    <thead>
+        <tr>
+            <th>Filename</th>
+            <th>Duration</th>
+            <th>Format</th>
+            <th>File Size</th>
+            <th>Import Date</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for recording in recordings %}
+        <tr>
+            <td>
+                <strong>{{ recording.original_filename }}</strong>
+            </td>
+            <td>
+                {% if recording.duration_seconds %}
+                    {{ "%.1f"|format(recording.duration_seconds) }}s
+                {% else %}
+                    -
+                {% endif %}
+            </td>
+            <td>
+                {{ recording.audio_format|upper if recording.audio_format else '-' }}
+            </td>
+            <td>
+                {% if recording.file_size_bytes %}
+                    {% set size_mb = recording.file_size_bytes / (1024 * 1024) %}
+                    {% if size_mb >= 1 %}
+                        {{ "%.1f"|format(size_mb) }} MB
+                    {% else %}
+                        {{ "%.0f"|format(recording.file_size_bytes / 1024) }} KB
+                    {% endif %}
+                {% else %}
+                    -
+                {% endif %}
+            </td>
+            <td>
+                {{ recording.import_timestamp.strftime('%Y-%m-%d %H:%M') if recording.import_timestamp else '-' }}
+            </td>
+            <td>
+                <span class="status {{ recording.transcript_status }}">
+                    {{ recording.transcript_status|title }}
+                </span>
+            </td>
+            <td>
+                <a href="/recordings/{{ recording.id }}">View Details</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<!-- Pagination -->
+{% if pagination.pages > 1 %}
+<div style="margin-top: 30px; text-align: center;">
+    <div style="display: inline-block;">
+        <!-- Previous page link -->
+        {% if pagination.has_prev %}
+            <a href="?page={{ pagination.page - 1 }}" 
+               style="display: inline-block; padding: 8px 12px; margin: 0 2px; text-decoration: none; border: 1px solid #ddd; color: #007bff; border-radius: 4px;">
+                &laquo; Previous
+            </a>
+        {% else %}
+            <span style="display: inline-block; padding: 8px 12px; margin: 0 2px; border: 1px solid #ddd; color: #999; border-radius: 4px; background-color: #f8f9fa;">
+                &laquo; Previous
+            </span>
+        {% endif %}
+
+        <!-- Page numbers -->
+        {% set start_page = [1, pagination.page - 2]|max %}
+        {% set end_page = [pagination.pages, pagination.page + 2]|min %}
+        
+        {% if start_page > 1 %}
+            <a href="?page=1" 
+               style="display: inline-block; padding: 8px 12px; margin: 0 2px; text-decoration: none; border: 1px solid #ddd; color: #007bff; border-radius: 4px;">
+                1
+            </a>
+            {% if start_page > 2 %}
+                <span style="display: inline-block; padding: 8px 12px; margin: 0 2px;">...</span>
+            {% endif %}
+        {% endif %}
+
+        {% for page_num in range(start_page, end_page + 1) %}
+            {% if page_num == pagination.page %}
+                <span style="display: inline-block; padding: 8px 12px; margin: 0 2px; border: 1px solid #007bff; background-color: #007bff; color: white; border-radius: 4px; font-weight: bold;">
+                    {{ page_num }}
+                </span>
+            {% else %}
+                <a href="?page={{ page_num }}" 
+                   style="display: inline-block; padding: 8px 12px; margin: 0 2px; text-decoration: none; border: 1px solid #ddd; color: #007bff; border-radius: 4px;">
+                    {{ page_num }}
+                </a>
+            {% endif %}
+        {% endfor %}
+
+        {% if end_page < pagination.pages %}
+            {% if end_page < pagination.pages - 1 %}
+                <span style="display: inline-block; padding: 8px 12px; margin: 0 2px;">...</span>
+            {% endif %}
+            <a href="?page={{ pagination.pages }}" 
+               style="display: inline-block; padding: 8px 12px; margin: 0 2px; text-decoration: none; border: 1px solid #ddd; color: #007bff; border-radius: 4px;">
+                {{ pagination.pages }}
+            </a>
+        {% endif %}
+
+        <!-- Next page link -->
+        {% if pagination.has_next %}
+            <a href="?page={{ pagination.page + 1 }}" 
+               style="display: inline-block; padding: 8px 12px; margin: 0 2px; text-decoration: none; border: 1px solid #ddd; color: #007bff; border-radius: 4px;">
+                Next &raquo;
+            </a>
+        {% else %}
+            <span style="display: inline-block; padding: 8px 12px; margin: 0 2px; border: 1px solid #ddd; color: #999; border-radius: 4px; background-color: #f8f9fa;">
+                Next &raquo;
+            </span>
+        {% endif %}
+    </div>
+    
+    <div style="margin-top: 15px; color: #666; font-size: 0.9em;">
+        Showing {{ recordings|length }} of {{ pagination.total }} recordings
+    </div>
+</div>
+{% endif %}
+
+{% else %}
+<div style="text-align: center; padding: 40px 20px; color: #666;">
+    <h3>No recordings found</h3>
+    <p>Upload some audio files to get started.</p>
+    <a href="/recordings/upload" 
+       style="display: inline-block; margin-top: 15px; background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold;">
+        Upload Your First Recording
+    </a>
+</div>
+{% endif %}
+
+<div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+    <h3>How to Add Recordings</h3>
+    <p>You can add recordings in two ways:</p>
+    <ul>
+        <li><strong>File Monitor:</strong> Copy audio files (.wav, .mp3, .m4a) to the monitored directory for automatic import</li>
+        <li><strong>Web Upload:</strong> <a href="/recordings/upload">Upload files directly</a> through the web interface</li>
+    </ul>
+</div>
+{% endblock %}
