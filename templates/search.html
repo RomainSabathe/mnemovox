@@ -1,0 +1,479 @@
+{% extends "base.html" %}
+
+{% block title %}Search Recordings - Audio Recording Manager{% endblock %}
+
+{% block content %}
+<h1>Search Recordings</h1>
+
+<div class="search-container">
+    <form id="search-form" class="search-form" method="get" action="/search">
+        <div class="search-input-group">
+            <input 
+                type="text" 
+                id="search-input" 
+                name="q" 
+                value="{{ query or '' }}" 
+                placeholder="Search recordings by filename or transcript content..."
+                class="search-input"
+                autocomplete="off"
+                required
+                minlength="3"
+                title="Search recordings by filename or transcript content"
+                aria-label="Search recordings by filename or transcript content"
+            >
+            <button type="submit" class="search-button">
+                <span class="search-icon">🔍</span>
+                <span class="search-text">Search</span>
+            </button>
+        </div>
+        <div class="search-tips">
+            <small>Tip: Search for words in transcript content or filename. Minimum 3 characters required.</small>
+        </div>
+    </form>
+</div>
+
+{% if query and query|length >= 3 %}
+<div class="search-results-container">
+    <div class="search-results-header">
+        <h2>Search Results</h2>
+        <div class="search-query-info">
+            Searching for: <strong>"{{ query }}"</strong>
+            {% if pagination.total > 0 %}
+                - Found {{ pagination.total }} result{{ 's' if pagination.total != 1 else '' }}
+            {% endif %}
+        </div>
+    </div>
+
+    <div id="search-results" class="search-results">
+        {% if results %}
+            {% for result in results %}
+            <div class="search-result-item" data-recording-id="{{ result.id }}">
+                <div class="result-header">
+                    <h3 class="result-filename">
+                        <a href="/recordings/{{ result.id }}" class="result-link">
+                            {{ result.original_filename }}
+                        </a>
+                    </h3>
+                    <div class="result-relevance">
+                        <span class="relevance-score" title="Relevance Score">
+                            {{ "%.1f"|format(result.relevance_score) }}
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="result-excerpt">
+                    {{ result.excerpt|safe }}
+                </div>
+                
+                <div class="result-actions">
+                    <a href="/recordings/{{ result.id }}" class="action-link view-link">
+                        📄 View Details
+                    </a>
+                    {% if result.transcript_text %}
+                    <button class="action-button expand-button" data-recording-id="{{ result.id }}">
+                        📖 Show Full Transcript
+                    </button>
+                    {% endif %}
+                </div>
+                
+                {% if result.transcript_text %}
+                <div class="result-full-transcript" id="transcript-{{ result.id }}" style="display: none;">
+                    <div class="transcript-header">
+                        <strong>Full Transcript:</strong>
+                    </div>
+                    <div class="transcript-content">
+                        {{ result.transcript_text }}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+
+            <!-- Pagination -->
+            {% if pagination.pages > 1 %}
+            <div class="pagination-container">
+                <nav class="pagination">
+                    {% if pagination.has_prev %}
+                        <a href="/search?q={{ query|urlencode }}&page={{ pagination.page - 1 }}" 
+                           class="pagination-link prev-link">
+                            ← Previous
+                        </a>
+                    {% endif %}
+
+                    <!-- Page numbers -->
+                    {% set start_page = [1, pagination.page - 2]|max %}
+                    {% set end_page = [pagination.pages, pagination.page + 2]|min %}
+                    
+                    {% if start_page > 1 %}
+                        <a href="/search?q={{ query|urlencode }}&page=1" class="pagination-link">1</a>
+                        {% if start_page > 2 %}
+                            <span class="pagination-ellipsis">...</span>
+                        {% endif %}
+                    {% endif %}
+
+                    {% for page_num in range(start_page, end_page + 1) %}
+                        {% if page_num == pagination.page %}
+                            <span class="pagination-link current">{{ page_num }}</span>
+                        {% else %}
+                            <a href="/search?q={{ query|urlencode }}&page={{ page_num }}" 
+                               class="pagination-link">{{ page_num }}</a>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if end_page < pagination.pages %}
+                        {% if end_page < pagination.pages - 1 %}
+                            <span class="pagination-ellipsis">...</span>
+                        {% endif %}
+                        <a href="/search?q={{ query|urlencode }}&page={{ pagination.pages }}" 
+                           class="pagination-link">{{ pagination.pages }}</a>
+                    {% endif %}
+
+                    {% if pagination.has_next %}
+                        <a href="/search?q={{ query|urlencode }}&page={{ pagination.page + 1 }}" 
+                           class="pagination-link next-link">
+                            Next →
+                        </a>
+                    {% endif %}
+                </nav>
+                
+                <div class="pagination-info">
+                    Page {{ pagination.page }} of {{ pagination.pages }} 
+                    ({{ pagination.total }} total result{{ 's' if pagination.total != 1 else '' }})
+                </div>
+            </div>
+            {% endif %}
+
+        {% else %}
+            <div class="no-results">
+                <div class="no-results-icon">🔍</div>
+                <h3>No results found</h3>
+                <p>No recordings match your search for <strong>"{{ query }}"</strong></p>
+                <div class="no-results-suggestions">
+                    <p>Try:</p>
+                    <ul>
+                        <li>Using different keywords</li>
+                        <li>Checking for typos</li>
+                        <li>Using more general terms</li>
+                        <li>Searching for content that appears in transcript text</li>
+                    </ul>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<div class="search-help" style="margin-top: 40px;">
+    <h3>Search Tips</h3>
+    <ul>
+        <li><strong>Filename search:</strong> Search by the original recording filename</li>
+        <li><strong>Content search:</strong> Search within transcript text content</li>
+        <li><strong>Multiple words:</strong> Use multiple words to find more specific results</li>
+        <li><strong>Minimum length:</strong> Search queries must be at least 3 characters long</li>
+    </ul>
+</div>
+
+<!-- CSS Styles -->
+<style>
+.search-container {
+    max-width: 800px;
+    margin: 20px 0;
+}
+
+.search-form {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+}
+
+.search-input-group {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.search-input {
+    flex: 1;
+    padding: 12px 16px;
+    border: 2px solid #ced4da;
+    border-radius: 6px;
+    font-size: 16px;
+    transition: border-color 0.3s ease;
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.search-button {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 6px;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background-color 0.3s ease;
+}
+
+.search-button:hover {
+    background: #0056b3;
+}
+
+.search-tips {
+    color: #6c757d;
+    font-size: 14px;
+}
+
+.search-results-container {
+    margin-top: 30px;
+}
+
+.search-results-header {
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.search-query-info {
+    color: #6c757d;
+    margin-top: 5px;
+}
+
+.search-result-item {
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    transition: box-shadow 0.3s ease;
+}
+
+.search-result-item:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.result-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10px;
+}
+
+.result-filename {
+    margin: 0;
+    font-size: 18px;
+    color: #343a40;
+}
+
+.result-link {
+    color: #007bff;
+    text-decoration: none;
+}
+
+.result-link:hover {
+    text-decoration: underline;
+}
+
+.relevance-score {
+    background: #e9ecef;
+    color: #495057;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.result-excerpt {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 6px;
+    border-left: 4px solid #007bff;
+    margin: 15px 0;
+    line-height: 1.6;
+    font-style: italic;
+}
+
+.result-excerpt mark {
+    background: #fff3cd;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-weight: bold;
+}
+
+.result-actions {
+    display: flex;
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.action-link, .action-button {
+    padding: 8px 12px;
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 14px;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.view-link {
+    background: #007bff;
+    color: white;
+}
+
+.view-link:hover {
+    background: #0056b3;
+}
+
+.expand-button {
+    background: #28a745;
+    color: white;
+}
+
+.expand-button:hover {
+    background: #1e7e34;
+}
+
+.result-full-transcript {
+    margin-top: 15px;
+    padding: 15px;
+    background: #f1f3f4;
+    border-radius: 6px;
+    border: 1px solid #dee2e6;
+}
+
+.transcript-header {
+    margin-bottom: 10px;
+    color: #495057;
+}
+
+.transcript-content {
+    line-height: 1.6;
+    max-height: 200px;
+    overflow-y: auto;
+    padding: 10px;
+    background: white;
+    border-radius: 4px;
+}
+
+.no-results {
+    text-align: center;
+    padding: 40px 20px;
+    color: #6c757d;
+}
+
+.no-results-icon {
+    font-size: 48px;
+    margin-bottom: 20px;
+}
+
+.no-results-suggestions {
+    margin-top: 20px;
+    text-align: left;
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.no-results-suggestions ul {
+    padding-left: 20px;
+}
+
+.pagination-container {
+    margin-top: 30px;
+    text-align: center;
+}
+
+.pagination {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 10px;
+}
+
+.pagination-link {
+    padding: 8px 12px;
+    color: #007bff;
+    text-decoration: none;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+.pagination-link:hover {
+    background: #e9ecef;
+}
+
+.pagination-link.current {
+    background: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+
+.pagination-ellipsis {
+    padding: 8px 4px;
+    color: #6c757d;
+}
+
+.pagination-info {
+    color: #6c757d;
+    font-size: 14px;
+}
+
+.search-help {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+}
+
+.search-help h3 {
+    margin-top: 0;
+    color: #495057;
+}
+
+.search-help ul {
+    margin-bottom: 0;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .search-input-group {
+        flex-direction: column;
+    }
+    
+    .result-header {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .result-actions {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .pagination {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+}
+</style>
+
+<!-- Include search JavaScript -->
+<script src="/static/js/search.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize search functionality
+    const searchManager = new SearchManager();
+    searchManager.init();
+});
+</script>
+
+{% endblock %}

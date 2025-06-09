@@ -15,12 +15,13 @@ from fastapi.responses import HTMLResponse, FileResponse, RedirectResponse, JSON
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Dict, Any
 import uuid
 import shutil
 from datetime import datetime
 from .config import Config
 from .db import get_session, Recording
+from sqlalchemy import text
 
 
 def run_transcription_task(recording_id: int, db_path_str: str):
@@ -487,6 +488,306 @@ def create_app(config: Config, db_path: str) -> FastAPI:
                 "message": message,
             },
         )
+
+    @app.get("/search", response_class=HTMLResponse)
+    async def search_page(
+        request: Request,
+        q: Optional[str] = None,
+        page: str = "1",
+        session=Depends(get_db_session),
+    ):
+        """HTML search page with form and results."""
+        context: Dict[str, Any] = {
+            "query": q,
+            "results": [],
+            "pagination": {
+                "page": 1,
+                "per_page": config.items_per_page,
+                "total": 0,
+                "pages": 0,
+                "has_prev": False,
+                "has_next": False,
+            },
+        }
+
+        # If there's a query, perform search
+        if q and len(q.strip()) >= 3:
+            try:
+                # Use the same search logic as the API endpoint
+                search_term = q.strip().replace('"', '""')
+
+                # Validate and parse page parameter
+                try:
+                    page_num = int(page)
+                    if page_num < 1:
+                        page_num = 1
+                except (ValueError, TypeError):
+                    page_num = 1
+
+                per_page = config.items_per_page
+                offset = (page_num - 1) * per_page
+
+                # FTS search query
+                fts_query = text(
+                    """
+                    SELECT 
+                        r.id,
+                        r.original_filename,
+                        r.transcript_text,
+                        fts.rank,
+                        highlight(recordings_fts, 1, '<mark>', '</mark>') as highlighted_text
+                    FROM recordings_fts fts
+                    JOIN recordings r ON r.id = fts.rowid
+                    WHERE recordings_fts MATCH :search_term
+                    AND r.transcript_status = 'complete'
+                    AND r.transcript_text IS NOT NULL
+                    ORDER BY fts.rank
+                    LIMIT :limit OFFSET :offset
+                """
+                )
+
+                # Count query
+                count_query = text(
+                    """
+                    SELECT COUNT(*)
+                    FROM recordings_fts fts
+                    JOIN recordings r ON r.id = fts.rowid
+                    WHERE recordings_fts MATCH :search_term
+                    AND r.transcript_status = 'complete'
+                    AND r.transcript_text IS NOT NULL
+                """
+                )
+
+                # Execute queries
+                search_results = session.execute(
+                    fts_query,
+                    {"search_term": search_term, "limit": per_page, "offset": offset},
+                ).fetchall()
+
+                total_result = session.execute(
+                    count_query, {"search_term": search_term}
+                ).fetchone()
+                total = total_result[0] if total_result else 0
+
+                # Process results
+                results = []
+                for row in search_results:
+                    recording_id, filename, transcript_text, rank, highlighted = row
+
+                    # Generate excerpt
+                    if highlighted and highlighted.strip():
+                        excerpt = _generate_excerpt(highlighted, search_term)
+                    else:
+                        excerpt = _generate_excerpt(transcript_text or "", search_term)
+
+                    results.append(
+                        {
+                            "id": recording_id,
+                            "original_filename": filename,
+                            "transcript_text": transcript_text,
+                            "excerpt": excerpt,
+                            "relevance_score": abs(rank) if rank else 0,
+                        }
+                    )
+
+                # Calculate pagination
+                pages = (total + per_page - 1) // per_page
+                has_prev = page_num > 1
+                has_next = page_num < pages
+
+                context["results"] = results
+                context["pagination"] = {
+                    "page": page_num,
+                    "per_page": per_page,
+                    "total": total,
+                    "pages": pages,
+                    "has_prev": has_prev,
+                    "has_next": has_next,
+                }
+
+            except Exception as e:
+                # Handle search errors gracefully
+                print(f"Search error: {e}")
+                context["error"] = "Search temporarily unavailable. Please try again."
+
+        return templates.TemplateResponse(
+            request=request,
+            name="search.html",
+            context=context,
+        )
+
+    @app.get("/api/search")
+    async def api_search_recordings(
+        q: str,
+        page: int = 1,
+        per_page: Optional[int] = None,
+        session=Depends(get_db_session),
+    ):
+        """API endpoint for full-text search of recordings."""
+        # Validate query length
+        if len(q.strip()) < 3:
+            raise HTTPException(
+                status_code=400,
+                detail="Search query must be at least 3 characters long",
+            )
+
+        # Validate pagination parameters
+        if page < 1:
+            raise HTTPException(status_code=400, detail="Page must be 1 or greater")
+
+        if per_page is None:
+            per_page = config.items_per_page
+
+        if per_page < 1:
+            raise HTTPException(status_code=400, detail="per_page must be positive")
+
+        if per_page > 100:
+            raise HTTPException(status_code=400, detail="per_page cannot exceed 100")
+
+        # Prepare search query - escape special FTS characters
+        search_term = q.strip().replace('"', '""')
+
+        # Perform FTS search
+        fts_query = text(
+            """
+            SELECT 
+                r.id,
+                r.original_filename,
+                r.transcript_text,
+                fts.rank,
+                highlight(recordings_fts, 1, '<mark>', '</mark>') as highlighted_text
+            FROM recordings_fts fts
+            JOIN recordings r ON r.id = fts.rowid
+            WHERE recordings_fts MATCH :search_term
+            AND r.transcript_status = 'complete'
+            AND r.transcript_text IS NOT NULL
+            ORDER BY fts.rank
+            LIMIT :limit OFFSET :offset
+        """
+        )
+
+        # Get total count for pagination
+        count_query = text(
+            """
+            SELECT COUNT(*)
+            FROM recordings_fts fts
+            JOIN recordings r ON r.id = fts.rowid
+            WHERE recordings_fts MATCH :search_term
+            AND r.transcript_status = 'complete'
+            AND r.transcript_text IS NOT NULL
+        """
+        )
+
+        # Calculate offset
+        offset = (page - 1) * per_page
+
+        try:
+            # Execute search query
+            search_results = session.execute(
+                fts_query,
+                {"search_term": search_term, "limit": per_page, "offset": offset},
+            ).fetchall()
+
+            # Get total count
+            total_result = session.execute(
+                count_query, {"search_term": search_term}
+            ).fetchone()
+            total = total_result[0] if total_result else 0
+
+        except Exception as e:
+            # Handle FTS syntax errors gracefully
+            if "fts5" in str(e).lower() or "syntax" in str(e).lower():
+                # Return empty results for invalid FTS syntax
+                search_results = []
+                total = 0
+            else:
+                raise HTTPException(status_code=500, detail="Search query failed")
+
+        # Process results
+        results = []
+        for row in search_results:
+            recording_id, filename, transcript_text, rank, highlighted = row
+
+            # Generate excerpt from highlighted text or transcript
+            if highlighted and highlighted.strip():
+                excerpt = _generate_excerpt(highlighted, search_term)
+            else:
+                excerpt = _generate_excerpt(transcript_text or "", search_term)
+
+            results.append(
+                {
+                    "id": recording_id,
+                    "original_filename": filename,
+                    "transcript_text": transcript_text,
+                    "excerpt": excerpt,
+                    "relevance_score": abs(rank)
+                    if rank
+                    else 0,  # FTS5 rank is negative
+                }
+            )
+
+        # Calculate pagination metadata
+        pages = (total + per_page - 1) // per_page  # Ceiling division
+        has_prev = page > 1
+        has_next = page < pages
+
+        return {
+            "query": q,
+            "results": results,
+            "pagination": {
+                "page": page,
+                "per_page": per_page,
+                "total": total,
+                "pages": pages,
+                "has_prev": has_prev,
+                "has_next": has_next,
+            },
+        }
+
+    def _generate_excerpt(text: str, search_term: str, max_length: int = 200) -> str:
+        """Generate a relevant excerpt around the search term."""
+        if not text:
+            return ""
+
+        # Remove HTML tags from highlighted text for excerpt generation
+        clean_text = text.replace("<mark>", "").replace("</mark>", "")
+
+        # Find the search term in the text (case insensitive)
+        search_lower = search_term.lower()
+        text_lower = clean_text.lower()
+
+        search_pos = text_lower.find(search_lower)
+        if search_pos == -1:
+            # If not found, return the beginning of the text
+            return clean_text[:max_length] + (
+                "..." if len(clean_text) > max_length else ""
+            )
+
+        # Calculate excerpt bounds around the search term
+        search_end = search_pos + len(search_term)
+        excerpt_start = max(0, search_pos - max_length // 3)
+        excerpt_end = min(len(clean_text), search_end + max_length // 3)
+
+        # Adjust to word boundaries if possible
+        if excerpt_start > 0:
+            space_pos = clean_text.find(" ", excerpt_start)
+            if space_pos != -1 and space_pos < search_pos:
+                excerpt_start = space_pos + 1
+
+        if excerpt_end < len(clean_text):
+            space_pos = clean_text.rfind(" ", search_end, excerpt_end)
+            if space_pos != -1:
+                excerpt_end = space_pos
+
+        excerpt = clean_text[excerpt_start:excerpt_end]
+
+        # Add ellipsis if needed
+        if excerpt_start > 0:
+            excerpt = "..." + excerpt
+        if excerpt_end < len(clean_text):
+            excerpt = excerpt + "..."
+
+        return excerpt
 
     return app
 
