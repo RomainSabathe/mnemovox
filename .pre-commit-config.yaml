@@ -1,0 +1,33 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.1.6
+    hooks:
+      - id: ruff
+        name: ruff lint
+        description: Run ruff linter (check only)
+        args: [--exit-non-zero-on-fix]
+      - id: ruff-format
+        name: ruff format check
+        description: Check ruff formatting compliance
+        args: [--check, --diff]
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.7.1
+    hooks:
+      - id: mypy
+        name: mypy type check
+        description: Run mypy type checker
+        additional_dependencies: [types-PyYAML, types-requests]
+        args: [--ignore-missing-imports, --explicit-package-bases]
+
+  - repo: local
+    hooks:
+      - id: pytest-changed
+        name: pytest on changed files
+        description: Run pytest on changed Python files only
+        entry: python -m pytest
+        language: system
+        types: [python]
+        pass_filenames: false
+        files: ^tests/.*\.py$
+        args: [--tb=short, -x]
