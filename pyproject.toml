@@ -29,6 +29,8 @@ dev = [
     "ruff",
     "types-PyYAML",
     "pre-commit",
+    "playwright",
+    "pytest-playwright",
 ]
 
 [tool.hatch.build.targets.wheel]
