@@ -43,6 +43,8 @@ class Recording(Base):
     transcript_segments = Column(JSON)
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+    transcription_model = Column(String, nullable=True)
+    transcription_language = Column(String, nullable=True)
 
 
 def init_db(db_path: str, fts_enabled: bool = True) -> None:
