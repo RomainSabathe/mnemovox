@@ -1,3 +1,5 @@
+# Phase 1: MVP Audio Recording Manager
+
 📘 Audio Recording Manager  
 📦 Developer Specification — Version 1.0
 
@@ -262,7 +264,7 @@ Phase 4:
 - SQLite3
 - Watchdog (for file import)
 
----
+# Phase 2: Interactive transcript UI and full-text search
 
 Audio Recording Manager – Phase 2 Developer Specification
 Version 2.0
@@ -453,3 +455,132 @@ HTML page: GET /search?q=…
     Start FastAPI server
 
     Launch worker processes
+
+Phase 2.5: UI & Quality-of-Life Improvements  
+============================================
+
+This document specifies everything a developer needs to implement the following post-Phase 2 features:  
+ • Audio waveform display (wavesurfer.js)  
+ • Global/default transcription settings page  
+ • Per-recording transcription overrides  
+ • “Re-transcribe” modal on the recording detail page
+
+1.  Functional Requirements
+
+---
+
+1.1 Waveform Display  
+ • On each recording’s detail page, render an interactive waveform using wavesurfer.js  
+ • Support play/pause and scrubbing
+
+1.2 Global Transcription Settings  
+ • A new top-nav link “Settings” → route `/settings`  
+ • In “Transcription Settings” section, two dropdowns:  
+ – Default Model (tiny, base, small, medium, large-v3-turbo)  
+ • Help text: “Select the Faster-Whisper model to use for new or re-transcriptions when no per-recording override is set.”  
+ – Default Language (“Auto Detect”, “English (en)”, “French (fr-CA)”, etc.)  
+ • Help text: “Choose which language to force (or Auto Detect) for transcription if not overridden per recording.”  
+ • “Save” button writes values back to `config.yml` and reloads in memory  
+ • Success/failure feedback via toast or inline banner
+
+1.3 Per-Recording Transcription Overrides  
+ • Extend `recordings` table with two nullable columns:  
+ – `transcription_model VARCHAR NULL`  
+ – `transcription_language VARCHAR NULL`  
+ • Null = defer to global default
+
+1.4 Re-transcription UX  
+ • On the detail page, display “Current Model” and “Current Language” (either override or global)  
+ • “Re-transcribe” button opens a centered modal:  
+ – Two dropdowns pre-filled with the recording’s current settings  
+ – Warning text: “Warning: this will overwrite the existing transcript.”  
+ – “Cancel” and “Re-transcribe” buttons  
+ • Submitting will:  
+ 1. Persist new override values into the two columns  
+ 2. Enqueue or start the transcription job with those settings  
+ 3. On success, refresh the transcript UI; on failure show an error toast
+
+2.  Architecture & Workflow
+
+---
+
+2.1 Backend  
+ • Framework: (Flask, FastAPI, etc.) with SQLite storage  
+ • Config loader reads `config.yml` at startup; exposes in-memory defaults  
+ • On POST `/api/settings`, validate & rewrite `config.yml`, update in-memory defaults  
+ • On POST `/api/recordings/{id}/transcribe`, accept JSON `{model, language}`,  
+ – Validate inputs against allowed values  
+ – UPDATE recordings SET transcription_model=?, transcription_language=?  
+ – Kick off transcription (Faster-Whisper) using those params  
+ – Return 202 Accepted or 200 plus job status
+
+2.2 Frontend  
+ • Single-page or multi-page app (React/Vue/vanilla JS)  
+ • Fetch global settings via GET `/api/settings` on `/settings` load  
+ • Fetch recording details (including override columns) on detail page load  
+ • Wavesurfer integration:  
+ – Include wavesurfer.js library  
+ – `<div id="waveform"></div>` on detail page  
+ – JS:  
+ const ws = WaveSurfer.create({ container: '#waveform', waveColor: '#ddd', progressColor: '#555' });  
+ ws.load(recording.audioUrl);  
+ – Hook play/pause buttons to `ws.playPause()`  
+ • Modal component for “Re-transcribe”  
+ • Toast/banner component for success/error
+
+3.  Data Handling & Validation
+
+---
+
+3.1 Allowed Values  
+ • Model ∈ {tiny, base, small, medium, large-v3-turbo}  
+ • Language ∈ {auto, en, fr-CA, …}  
+3.2 Invalid Input  
+ • Return 400 with JSON `{error: "Invalid model"}` or `{error: "Invalid language"}`
+
+4.  Error Handling
+
+---
+
+4.1 Backend  
+ • Wrap filesystem writes (config.yml) in try/catch; on failure return 500 + `{error: "Could not save settings"}`  
+ • Catch DB errors on UPDATE; return 500 + `{error:"Database error"}`  
+4.2 Frontend  
+ • Disable “Save” or “Re-transcribe” button while request pending  
+ • On non-2xx response, extract `error` from JSON and show toast in red  
+ • Recoverable UI state (cancel, fix input)
+
+5.  Testing Plan
+
+---
+
+5.1 Unit Tests (Backend)  
+ • Config manager: loading + saving valid/invalid YAML → success/failure  
+ • API `/settings`: valid payload → file update, in-memory update; invalid payload → 400  
+ • API `/recordings/{id}/transcribe`:  
+ – Valid id+payload → columns updated, transcription job enqueued  
+ – Bad id → 404; bad payload → 400
+
+5.2 Integration Tests  
+ • With test DB, create a recording, call transcribe endpoint, verify DB columns and transcript file content  
+ • Update global settings, restart loader, verify defaults changed
+
+5.3 End-to-End (E2E) Tests  
+ • Settings page flow: load, change defaults, save, reload → new values present  
+ • Detail page:  
+ – Waveform loads successfully (mock audio)  
+ – Modal appears, pre-filled values correct (global vs override)  
+ – Re-transcribe → transcript refreshes; override stored in DB  
+ – Error path: simulate backend 500 → toast appears
+
+6.  Milestones & Deliverables
+
+---
+
+• DB migration script adding two columns  
+ • Backend endpoints for settings + transcription  
+ • Frontend:  
+ – Top-nav link to `/settings`  
+ – `/settings` page with form & toast  
+ – Detail page: waveform + settings display + modal  
+ • Full test suite passing

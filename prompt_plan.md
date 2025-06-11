@@ -4,7 +4,7 @@ are building.
 # Phase 1
 
 ```text
-PROMPT 1/8: Project Scaffold & Config Loader
+PROMPT 1/8: Project Scaffold & Config Loader ✅ COMPLETED
 
 Context:
   We are building “Audio Recording Manager” per spec.
@@ -31,7 +31,7 @@ End with:
 ---
 
 ```text
-PROMPT 2/8: Database Schema & Initialization
+PROMPT 2/8: Database Schema & Initialization ✅ COMPLETED
 
 Context:
   We have project scaffold and config.get_config().
@@ -54,7 +54,7 @@ Request:
 ---
 
 ```text
-PROMPT 3/8: Audio Utilities (probe + filename)
+PROMPT 3/8: Audio Utilities (probe + filename) ✅ COMPLETED
 
 Context:
   We need:
@@ -74,7 +74,7 @@ Request:
 ---
 
 ```text
-PROMPT 4/8: Watcher & Ingestion Pipeline
+PROMPT 4/8: Watcher & Ingestion Pipeline ✅ COMPLETED
 
 Context:
   We have config, db, audio_utils.
@@ -97,7 +97,7 @@ Request:
 ---
 
 ```text
-PROMPT 5/8: Transcription Module
+PROMPT 5/8: Transcription Module ✅ COMPLETED
 
 Context:
   Now implement `transcriber.py`:
@@ -115,7 +115,7 @@ Request:
 ---
 
 ```text
-PROMPT 6/8: Orchestrate Ingestion → Transcription
+PROMPT 6/8: Orchestrate Ingestion → Transcription ✅ COMPLETED
 
 Context:
   We have watcher triggering DB inserts, and transcriber.
@@ -134,7 +134,7 @@ Request:
 ---
 
 ```text
-PROMPT 7/8: FastAPI Backend & UI
+PROMPT 7/8: FastAPI Backend & UI ✅ COMPLETED
 
 Context:
   Now expose:
@@ -152,7 +152,7 @@ Request:
 ---
 
 ```text
-PROMPT 8/8: CI & Integration Checks
+PROMPT 8/8: CI & Integration Checks ✅ COMPLETED
 
 Context:
   All components exist.
@@ -168,66 +168,7 @@ Request:
   Ensure on a fresh checkout tests pass.
 ```
 
----
-
-Below is Phase 2 broken into:
-
-1. A high-level **Blueprint** (goals, architecture, new components).
-2. An **Iterative Chunk Breakdown**: first coarse chunks, then each chunk split into small, safe, test-first steps.
-3. A sequence of **Code-Generation Prompts** (to feed an LLM) that build on each other, TDD-driven, wiring everything together.
-
----
-
-## 1. High-Level Blueprint
-
-### Phase 2 Goals
-
-• Interactive, synchronized transcript UI (highlight & click-to-seek)  
-• Web-based audio upload  
-• Recordings listing page with pagination  
-• Full-text search over transcripts (SQLite FTS5)  
-• Manual re-transcription endpoint
-
-### Architecture & Tech Additions
-
-Backend  
-• FastAPI + Uvicorn/Gunicorn  
-• SQLite w/ FTS5 (or Postgres later)  
-• FastAPI BackgroundTasks (or Celery/RQ) for transcription jobs
-
-Frontend  
-• Jinja2 + Vanilla JS  
-• HTML5 `<audio>`  
-• Fetch API for JSON endpoints
-
-New Storage  
-• `/data/uploads/` for temporary file uploads  
-• Sync FTS index on insert/update
-
-Config Additions  
-• upload_temp_path  
-• fts_enabled  
-• items_per_page
-
-### New API Endpoints
-
-JSON `/api/...`  
-• POST `/api/recordings/upload`  
-• GET `/api/recordings` (page/per_page)  
-• GET `/api/recordings/{id}`  
-• GET `/api/recordings/{id}/segments`  
-• POST `/api/recordings/{id}/transcribe`  
-• GET `/api/search`
-
-HTML pages  
-• GET `/recordings` (list + pagination)  
-• GET `/recordings/{id}` (player + transcript UI)  
-• GET `/search` (search form + results)  
-• GET `/recordings/upload` (upload form)
-
----
-
-Phase 2
+# Phase 2
 
 ```text
 PROMPT A/8: Config & FTS Setup ✅ COMPLETED
@@ -388,7 +329,7 @@ Deliver:
 ---
 
 ```text
-PROMPT G/8: Background Task Orchestration
+PROMPT G/8: Background Task Orchestration ✅ COMPLETED
 
 Context:
   Tie ingestion & re-transcription into background tasks
@@ -409,7 +350,7 @@ Deliver:
 ---
 
 ```text
-PROMPT H/8: Testing & CI Updates
+PROMPT H/8: Testing & CI Updates ✅ COMPLETED
 
 Context:
   Phase 2 adds new tests & static assets
@@ -426,4 +367,169 @@ Deliver:
   - Updated `pytest.ini`
   - `.github/workflows/ci.yml`
   - Updated `README.md`
+```
+
+# Phase 2.5
+
+---
+
+```text
+PROMPT A/6: DB Migration & Model Update
+
+Context:
+  We have Phase 1 & 2 done. Now add per-recording overrides.
+  Use SQLite and SQLAlchemy.
+
+Steps:
+  1. Create `tests/test_db_migration.py`:
+     - Apply migration script `migrations/002_add_overrides.py`
+     - Inspect sqlite_master → table `recordings` has columns `transcription_model`, `transcription_language`
+  2. Write `migrations/002_add_overrides.py`:
+     - SQL: ALTER TABLE recordings ADD COLUMN transcription_model VARCHAR NULL;
+     - Same for transcription_language.
+  3. Update `db.py` Recording model:
+     - Add `transcription_model: Optional[str]`
+     - Add `transcription_language: Optional[str]`
+  4. Ensure existing tests for ingestion & transcription still pass.
+
+Deliver:
+  - `tests/test_db_migration.py`
+  - `migrations/002_add_overrides.py`
+  - Updated `db.py`
+```
+
+---
+
+```text
+PROMPT B/6: Config Manager Load & Save
+
+Context:
+  Extend `config.py` to support saving globals back to YAML.
+
+Steps:
+  1. Write `tests/test_config_save.py`:
+     - Given a temp `config.yml` with known defaults
+     - Load via `get_config()`, modify `default_model`, `default_language`
+     - Call `save_config()` → file on disk updated
+     - Reload `get_config()` → returns updated defaults
+     - Test invalid YAML causing save error → raises exception
+  2. Implement in `config.py`:
+     - Add `save_config(changes: dict)` that:
+       • Reads existing YAML
+       • Merges `changes`
+       • Writes back (atomic write)
+       • Updates in-memory config object
+  3. Ensure existing config tests still pass.
+
+Deliver:
+  - `tests/test_config_save.py`
+  - Updated `config.py`
+```
+
+---
+
+```text
+PROMPT C/6: API Settings Endpoints
+
+Context:
+  Expose GET/POST `/api/settings` to read & write global transcription defaults.
+
+Steps:
+  1. Write `tests/test_api_settings.py` using FastAPI TestClient:
+     - GET `/api/settings` → 200 + JSON `{ default_model, default_language }`
+     - POST valid JSON → 200 + same JSON, underlying `config.yml` updated
+     - POST invalid model/language → 400 + `{ error }`
+  2. In `app.py`, add:
+     - `@app.get("/api/settings")` → returns `get_config().defaults`
+     - `@app.post("/api/settings")` → validates input, calls `save_config()`, returns updated
+  3. Mock filesystem writes in tests to avoid side effects.
+
+Deliver:
+  - `tests/test_api_settings.py`
+  - Updated `app.py`
+```
+
+---
+
+```text
+PROMPT D/6: Frontend Settings Page
+
+Context:
+  Build `/settings` HTML + JS to manage global defaults.
+
+Steps:
+  1. Write `tests/test_page_settings.py`:
+     - GET `/settings` → 200 + HTML contains `<form id="settings-form">` with selects pre-selected
+  2. Create `templates/settings.html`:
+     - Extends base
+     - Form with two `<select>` for `default_model` & `default_language`
+     - `<div id="toast"></div>`
+     - Includes `<script src="/static/js/settings.js">`
+  3. Write `static/js/settings.js` and `tests/test_settings_js.js`:
+     - On submit, fetch POST `/api/settings`, show success/error toast
+  4. Ensure style & UX minimal but functional.
+
+Deliver:
+  - `tests/test_page_settings.py`
+  - `templates/settings.html`
+  - `static/js/settings.js`
+  - `tests/test_settings_js.js`
+```
+
+---
+
+```text
+PROMPT E/6: Detail Page Enhancements & Re-transcribe Modal
+
+Context:
+  Extend detail page to show overrides and modal.
+
+Steps:
+  1. Write `tests/test_page_detail_overrides.py`:
+     - GET `/recordings/{id}` → HTML contains “Current Model:” and “Current Language:”
+     - Contains `<button id="btn-retranscribe">`
+  2. Update `templates/recording_detail.html`:
+     - Display override columns or global defaults
+     - Add `btn-retranscribe`, modal skeleton `<div id="retranscribe-modal">` hidden
+     - Include `<script src="/static/js/retranscribe.js">`
+  3. Write `static/js/retranscribe.js` + `tests/test_retranscribe_js.js`:
+     - On click, show modal, pre-fill selects with current values
+     - On modal submit, POST `/api/recordings/{id}/transcribe` with `{model,language}`
+     - On success, close modal, refresh transcript container; on error, show toast
+  4. Write `tests/test_api_retranscribe_override.py`:
+     - POST valid override → 200/202, DB columns updated
+     - POST invalid → 400; non-existent id → 404
+
+Deliver:
+  - `tests/test_page_detail_overrides.py`
+  - `templates/recording_detail.html`
+  - `static/js/retranscribe.js`
+  - `tests/test_retranscribe_js.js`
+  - `tests/test_api_retranscribe_override.py`
+  - Updated `/api/recordings/{id}/transcribe` in `app.py`
+```
+
+---
+
+```text
+PROMPT F/6: Waveform Display Integration
+
+Context:
+  Add wavesurfer.js waveform to detail page.
+
+Steps:
+  1. Write `tests/test_page_detail_waveform.py`:
+     - GET `/recordings/{id}` → HTML contains `<div id="waveform"></div>` and `<script src="https://unpkg.com/wavesurfer.js"></script>`
+     - Also includes `<script src="/static/js/waveform.js">`
+  2. Create `static/js/waveform.js` and `tests/test_waveform_js.js`:
+     - JS to instantiate `WaveSurfer.create({ container:'#waveform', ... })` and `load(audioUrl)`
+     - Hook play/pause button `#btn-play` to `ws.playPause()`
+  3. Update `templates/recording_detail.html` to include waveform container and play/pause controls.
+  4. Verify end-to-end via TestClient + manual.
+
+Deliver:
+  - `tests/test_page_detail_waveform.py`
+  - `static/js/waveform.js`
+  - `tests/test_waveform_js.js`
+  - Updated `templates/recording_detail.html`
 ```
