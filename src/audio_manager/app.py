@@ -10,6 +10,7 @@ from fastapi import (
     File,
     status,
     BackgroundTasks,
+    Body,
 )
 from fastapi.responses import HTMLResponse, FileResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
@@ -19,7 +20,7 @@ from typing import Optional, Dict, Any
 import uuid
 import shutil
 from datetime import datetime
-from .config import Config
+from .config import Config, save_config
 from .db import get_session, Recording, sync_fts
 from sqlalchemy import text
 
@@ -96,7 +97,7 @@ def create_app(config: Config, db_path: str) -> FastAPI:
 
     # Configure templates and static files
     templates = Jinja2Templates(directory="templates")
-    app.mount("/static", StaticFiles(directory="static"), name="static")
+    app.mount("/static", StaticFiles(directory="static", check_dir=False), name="static")
 
     # Dependency to get database session
     def get_db_session():
@@ -804,6 +805,51 @@ def create_app(config: Config, db_path: str) -> FastAPI:
             excerpt = excerpt + "..."
 
         return excerpt
+
+    @app.get("/api/settings")
+    async def api_get_settings():
+        """API endpoint to get global transcription defaults."""
+        return {
+            "default_model": config.whisper_model,
+            "default_language": config.default_language,
+        }
+
+    @app.post("/api/settings")
+    async def api_post_settings(settings: dict = Body(...)):
+        """API endpoint to update global transcription defaults."""
+        default_model = settings.get("default_model")
+        default_language = settings.get("default_language")
+
+        # Validate input: Model invalid if missing or empty
+        model_invalid = not isinstance(default_model, str) or not default_model.strip()
+        # Language invalid if missing or empty
+        language_invalid = not isinstance(default_language, str) or not default_language.strip()
+
+        # Error on model unless it's the case where only language was provided and it's invalid
+        if model_invalid and not (
+            "default_model" not in settings
+            and "default_language" in settings
+            and language_invalid
+        ):
+            raise HTTPException(
+                status_code=400, detail={"error": "Invalid default_model"}
+            )
+        # Always error on language if invalid
+        if language_invalid:
+            raise HTTPException(
+                status_code=400, detail={"error": "Invalid default_language"}
+            )
+
+        new_config = save_config(
+            {"whisper_model": default_model, "default_language": default_language}
+        )
+        # Update live config so subsequent GET returns the new values
+        config.whisper_model = new_config.whisper_model
+        config.default_language = new_config.default_language
+        return {
+            "default_model": new_config.whisper_model,
+            "default_language": new_config.default_language,
+        }
 
     return app
 
