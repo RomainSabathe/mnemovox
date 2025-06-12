@@ -374,7 +374,7 @@ Deliver:
 ---
 
 ```text
-PROMPT A/6: DB Migration & Model Update
+PROMPT A/6: DB Migration & Model Update ✅ COMPLETED
 
 Context:
   We have Phase 1 & 2 done. Now add per-recording overrides.

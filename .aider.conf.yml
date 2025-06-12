@@ -1,0 +1,8 @@
+read:
+  - CLAUDE.md
+  - spec.md
+  - prompt_plan.md
+cache-prompts: true
+auto-commits: false
+git-commit-verify: true
+editor: nvim
