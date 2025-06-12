@@ -1,8 +1,11 @@
 # ABOUTME: Configuration loader module
-# ABOUTME: Loads YAML configuration with sensible defaults
+# ABOUTME: Loads and saves YAML configuration with sensible defaults
 
 import yaml
 from dataclasses import dataclass
+import os
+import tempfile
+import shutil
 
 
 @dataclass
@@ -17,6 +20,7 @@ class Config:
     upload_temp_path: str = "./data/uploads"
     fts_enabled: bool = True
     items_per_page: int = 20
+    default_language: str = "auto"
 
 
 def get_config(config_path: str = "config.yaml") -> Config:
@@ -65,5 +69,57 @@ def get_config(config_path: str = "config.yaml") -> Config:
     if isinstance(yaml_data.get("items_per_page"), int):
         config.items_per_page = yaml_data["items_per_page"]
 
-    # Test pre-commit hooks
+    if isinstance(yaml_data.get("default_language"), str):
+        config.default_language = yaml_data["default_language"]
+
     return config
+
+
+def save_config(changes: dict, config_path: str = "config.yaml") -> Config:
+    """
+    Save configuration changes to YAML file.
+
+    Args:
+        changes: Dictionary of configuration changes
+        config_path: Path to the YAML configuration file
+
+    Returns:
+        Updated Config object
+
+    Raises:
+        Exception: If saving fails
+    """
+    # Load existing config or start with defaults
+    try:
+        with open(config_path, "r") as f:
+            existing_data = yaml.safe_load(f) or {}
+    except FileNotFoundError:
+        existing_data = {}
+    except yaml.YAMLError as e:
+        raise yaml.YAMLError(f"Invalid YAML in config file: {e}")
+
+    # Merge changes
+    updated_data = {**existing_data, **changes}
+
+    # Validate changes
+    for key in changes:
+        if key not in Config.__annotations__:
+            raise ValueError(f"Invalid config key: {key}")
+
+    # Write updated config atomically
+    try:
+        # Write to temp file first
+        with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp_file:
+            yaml.dump(updated_data, tmp_file, sort_keys=False)
+            tmp_path = tmp_file.name
+
+        # Replace original file
+        shutil.move(tmp_path, config_path)
+    except Exception as e:
+        # Clean up temp file if error occurs
+        if os.path.exists(tmp_path):
+            os.unlink(tmp_path)
+        raise Exception(f"Failed to save config: {str(e)}")
+
+    # Return updated config
+    return get_config(config_path)
