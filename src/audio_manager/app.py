@@ -851,6 +851,18 @@ def create_app(config: Config, db_path: str) -> FastAPI:
             "default_language": new_config.default_language,
         }
 
+    @app.get("/settings", response_class=HTMLResponse)
+    async def settings_page(request: Request):
+        """HTML page for managing global transcription settings."""
+        return templates.TemplateResponse(
+            name="settings.html",
+            context={
+                "request": request,
+                "default_model": config.whisper_model,
+                "default_language": config.default_language,
+            },
+        )
+
     return app
 
 

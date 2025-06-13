@@ -1,14 +1,16 @@
 # ABOUTME: Tests for complete ingestion to transcription pipeline
 # ABOUTME: Verifies end-to-end workflow with asyncio orchestration
 
-import pytest
 import asyncio
 import shutil
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 from unittest.mock import patch
+
+import pytest
+
 from src.audio_manager.config import Config
-from src.audio_manager.db import init_db, get_session, Recording
+from src.audio_manager.db import Recording, get_session, init_db
 from src.audio_manager.pipeline import (
     TranscriptionPipeline,
     process_pending_transcriptions,
@@ -562,9 +564,9 @@ async def test_transcription_pipeline_updates_fts(test_config, test_db_with_fts)
     session = get_session(test_db_with_fts)
     try:
         recording = session.query(Recording).filter_by(id=recording_id).first()
-        assert (
-            recording.transcript_status == "complete"
-        ), "Transcription should complete"
+        assert recording.transcript_status == "complete", (
+            "Transcription should complete"
+        )
         assert recording.transcript_text is not None, "Should have transcript text"
 
         # CRITICAL: Verify FTS indexing happened automatically
@@ -590,9 +592,9 @@ async def test_transcription_pipeline_updates_fts(test_config, test_db_with_fts)
             )
         ).fetchall()
 
-        assert (
-            len(search_results) == 1
-        ), "Should be able to search the transcribed recording"
+        assert len(search_results) == 1, (
+            "Should be able to search the transcribed recording"
+        )
         assert search_results[0][0] == "fts_test.wav"
 
     finally:

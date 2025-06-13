@@ -2,7 +2,8 @@
 # ABOUTME: Handles audio file transcription with segment-level details
 
 import logging
-from typing import Optional, Tuple, List, Dict, Any
+from typing import Any, Dict, List, Optional, Tuple
+
 from faster_whisper import WhisperModel
 
 # Configure logging

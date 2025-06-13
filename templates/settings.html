@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+  <h1>Settings</h1>
+  <form id="settings-form">
+    <label for="default-model">Default Model:</label>
+    <select id="default-model" name="default_model">
+      {% for model in ["tiny", "base", "small", "medium", "large-v3-turbo"] %}
+        <option value="{{ model }}" {% if model == default_model %}selected="selected"{% endif %}>{{ model }}</option>
+      {% endfor %}
+    </select>
+
+    <label for="default-language">Default Language:</label>
+    <select id="default-language" name="default_language">
+      {% for code, label in [("auto","Auto Detect"),("en","English (en)"),("fr-CA","French (fr-CA)")] %}
+        <option value="{{ code }}" {% if code == default_language %}selected="selected"{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+
+    <button type="submit">Save</button>
+  </form>
+
+  <div id="toast"></div>
+  <script src="/static/js/settings.js"></script>
+{% endblock %}
