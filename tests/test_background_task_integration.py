@@ -163,7 +163,7 @@ def test_background_tasks_actually_run(real_server_with_background_tasks):
 
 @pytest.mark.skipif(True, reason="Skip in CI - tests background task deployment issue")
 def test_manual_retranscription_triggers_background_tasks(
-    real_server_with_background_tasks
+    real_server_with_background_tasks,
 ):
     """Test that manual re-transcription API actually triggers background indexing."""
     base_url, db_path = real_server_with_background_tasks

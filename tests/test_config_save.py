@@ -1,9 +1,11 @@
 # ABOUTME: Tests for configuration saving
-import pytest
-from src.audio_manager.config import get_config, save_config
 import os
-import yaml
 import tempfile
+
+import pytest
+import yaml
+
+from src.audio_manager.config import get_config, save_config
 
 
 def test_save_config_updates_values():
@@ -47,7 +49,7 @@ def test_save_config_creates_new_file():
 
     # Should create new file
     changes = {"whisper_model": "small", "default_language": "en"}
-    config = save_config(changes, tmp_path)
+    _ = save_config(changes, tmp_path)
 
     # Verify file exists and has changes
     assert os.path.exists(tmp_path)

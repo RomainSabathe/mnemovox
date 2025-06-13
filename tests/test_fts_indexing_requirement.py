@@ -273,9 +273,9 @@ def test_re_transcription_endpoint_ensures_fts_indexing():
         # Verify not searchable before re-transcription
         response = client.get("/api/search?q=searchable")
         assert response.status_code == 200
-        assert (
-            len(response.json()["results"]) == 0
-        ), "Should not be searchable initially"
+        assert len(response.json()["results"]) == 0, (
+            "Should not be searchable initially"
+        )
 
         # Trigger re-transcription (this should fix the FTS indexing)
         response = client.post(f"/api/recordings/{recording_id}/transcribe")

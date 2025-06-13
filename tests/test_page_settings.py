@@ -4,6 +4,7 @@ from audio_manager.config import get_config
 from audio_manager.db import init_db
 from audio_manager.app import create_app
 
+
 def test_settings_page_selects_defaults(tmp_path):
     # Prepare a temp config with default_language
     cfg_path = tmp_path / "config.yaml"

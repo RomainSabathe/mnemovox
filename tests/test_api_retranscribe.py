@@ -366,8 +366,8 @@ def test_retranscribe_preserves_metadata(test_app_with_recordings):
 
         for field, expected_value in initial_metadata.items():
             actual_value = getattr(updated_recording, field)
-            assert (
-                actual_value == expected_value
-            ), f"Metadata field {field} changed during re-transcription"
+            assert actual_value == expected_value, (
+                f"Metadata field {field} changed during re-transcription"
+            )
     finally:
         session.close()

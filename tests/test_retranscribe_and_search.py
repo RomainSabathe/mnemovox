@@ -139,9 +139,9 @@ def test_retranscribe_endpoint_triggers_search_indexing(test_app_with_uploaded_f
                 for r in search_data["results"]
                 if r["original_filename"] == "this_is_a_test.wav"
             ]
-            assert (
-                len(matching_results) == 1
-            ), "Should find the transcribed file in search"
+            assert len(matching_results) == 1, (
+                "Should find the transcribed file in search"
+            )
 
             print("✅ Re-transcription endpoint correctly updates search index")
 
@@ -209,9 +209,9 @@ def test_search_before_and_after_transcription(test_app_with_uploaded_file):
     try:
         recording = session.query(Recording).filter_by(id=recording_id).first()
         if recording.transcript_status == "complete":
-            assert (
-                len(data["results"]) > 0
-            ), "Should find results after successful transcription"
+            assert len(data["results"]) > 0, (
+                "Should find results after successful transcription"
+            )
             print(
                 "✅ Search correctly shows no results before and finds results after transcription"
             )

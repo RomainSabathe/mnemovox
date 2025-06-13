@@ -1,28 +1,30 @@
 # ABOUTME: FastAPI web application for audio recording manager
 # ABOUTME: Provides web interface and API for viewing recordings and transcripts
 
+import shutil
+import uuid
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, Optional
+
 from fastapi import (
-    FastAPI,
-    Request,
-    HTTPException,
-    Depends,
-    UploadFile,
-    File,
-    status,
     BackgroundTasks,
     Body,
+    Depends,
+    FastAPI,
+    File,
+    HTTPException,
+    Request,
+    UploadFile,
+    status,
 )
-from fastapi.responses import HTMLResponse, FileResponse, RedirectResponse, JSONResponse
-from fastapi.templating import Jinja2Templates
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
-from pathlib import Path
-from typing import Optional, Dict, Any
-import uuid
-import shutil
-from datetime import datetime
-from .config import Config, save_config
-from .db import get_session, Recording, sync_fts
+from fastapi.templating import Jinja2Templates
 from sqlalchemy import text
+
+from .config import Config, save_config
+from .db import Recording, get_session, sync_fts
 
 
 def run_transcription_task(recording_id: int, db_path_str: str):
@@ -97,7 +99,9 @@ def create_app(config: Config, db_path: str) -> FastAPI:
 
     # Configure templates and static files
     templates = Jinja2Templates(directory="templates")
-    app.mount("/static", StaticFiles(directory="static", check_dir=False), name="static")
+    app.mount(
+        "/static", StaticFiles(directory="static", check_dir=False), name="static"
+    )
 
     # Dependency to get database session
     def get_db_session():
@@ -366,8 +370,9 @@ def create_app(config: Config, db_path: str) -> FastAPI:
 
             # Move uploaded file to storage and create database record
             # This is a simplified version of the ingestion logic
-            from .audio_utils import generate_internal_filename, probe_metadata
             from datetime import datetime
+
+            from .audio_utils import generate_internal_filename, probe_metadata
 
             try:
                 # Generate internal filename and storage path
@@ -823,7 +828,9 @@ def create_app(config: Config, db_path: str) -> FastAPI:
         # Validate input: Model invalid if missing or empty
         model_invalid = not isinstance(default_model, str) or not default_model.strip()
         # Language invalid if missing or empty
-        language_invalid = not isinstance(default_language, str) or not default_language.strip()
+        language_invalid = (
+            not isinstance(default_language, str) or not default_language.strip()
+        )
 
         # Error on model unless it's the case where only language was provided and it's invalid
         if model_invalid and not (
@@ -869,6 +876,7 @@ def create_app(config: Config, db_path: str) -> FastAPI:
 # Entry point for running the application
 if __name__ == "__main__":
     import uvicorn
+
     from .config import get_config
     from .db import init_db
 

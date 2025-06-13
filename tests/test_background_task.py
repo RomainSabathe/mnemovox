@@ -276,9 +276,13 @@ def test_background_task_syncs_fts():
         mock_result = ("Test transcript", [])
         mock_sync_fts = MagicMock()
 
-        with patch(
-            "src.audio_manager.transcriber.transcribe_file", return_value=mock_result
-        ), patch("src.audio_manager.app.sync_fts", mock_sync_fts):
+        with (
+            patch(
+                "src.audio_manager.transcriber.transcribe_file",
+                return_value=mock_result,
+            ),
+            patch("src.audio_manager.app.sync_fts", mock_sync_fts),
+        ):
             # Run the background task
             run_transcription_task(recording_id, db_path)
 

@@ -166,9 +166,9 @@ def test_search_fails_without_transcript(test_app_with_real_workflow):
     assert response.status_code == 200
 
     data = response.json()
-    assert (
-        len(data["results"]) == 0
-    ), "Recordings without transcripts should not be searchable"
+    assert len(data["results"]) == 0, (
+        "Recordings without transcripts should not be searchable"
+    )
 
 
 def test_search_integration_multiple_files(test_app_with_real_workflow):
@@ -198,8 +198,8 @@ def test_search_integration_multiple_files(test_app_with_real_workflow):
         for i, rec_data in enumerate(recordings):
             recording = Recording(
                 original_filename=rec_data["filename"],
-                internal_filename=f"1609459{300 + i*100}_test_{i:04d}.wav",
-                storage_path=f"2021/01-01/1609459{300 + i*100}_test_{i:04d}.wav",
+                internal_filename=f"1609459{300 + i * 100}_test_{i:04d}.wav",
+                storage_path=f"2021/01-01/1609459{300 + i * 100}_test_{i:04d}.wav",
                 import_timestamp=now,
                 duration_seconds=10.0 + i * 5,
                 audio_format="wav",

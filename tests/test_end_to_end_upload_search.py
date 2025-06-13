@@ -103,9 +103,9 @@ def test_end_to_end_upload_transcribe_search(test_app_with_real_upload):
                 for r in search_data["results"]
                 if r["original_filename"] == "this_is_a_test.wav"
             ]
-            assert (
-                len(matching_results) == 1
-            ), f"Should find uploaded file in search results. Results: {search_data['results']}"
+            assert len(matching_results) == 1, (
+                f"Should find uploaded file in search results. Results: {search_data['results']}"
+            )
 
             result = matching_results[0]
             assert result["id"] == recording_id
