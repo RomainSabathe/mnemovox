@@ -175,7 +175,7 @@ def create_app(config: Config, db_path: str) -> FastAPI:
         return templates.TemplateResponse(
             request=request,
             name="recording_detail.html",
-            context={"recording": recording},
+            context={"recording": recording, "config": config},
         )
 
     @app.get("/audio/{path:path}")
@@ -473,6 +473,7 @@ def create_app(config: Config, db_path: str) -> FastAPI:
     async def api_retranscribe_recording(
         recording_id: int,
         background_tasks: BackgroundTasks,
+        overrides: dict = Body(default={}),
         session=Depends(get_db_session),
     ):
         """API endpoint to trigger re-transcription of a recording."""
@@ -480,6 +481,35 @@ def create_app(config: Config, db_path: str) -> FastAPI:
 
         if not recording:
             raise HTTPException(status_code=404, detail="Recording not found")
+
+        # Validate overrides if provided
+        model = overrides.get("model")
+        language = overrides.get("language")
+
+        # Define valid values
+        valid_models = {"tiny", "base", "small", "medium", "large-v3-turbo"}
+        valid_languages = {
+            "auto",
+            "en",
+            "fr",
+            "fr-CA",
+            "es",
+            "de",
+            "it",
+            "pt",
+            "ru",
+            "ja",
+            "ko",
+            "zh",
+        }
+
+        # Validate model if provided
+        if model is not None and model not in valid_models:
+            raise HTTPException(status_code=400, detail="Invalid model")
+
+        # Validate language if provided
+        if language is not None and language not in valid_languages:
+            raise HTTPException(status_code=400, detail="Invalid language")
 
         # Remember previous status for message
         previous_status = recording.transcript_status
@@ -490,6 +520,12 @@ def create_app(config: Config, db_path: str) -> FastAPI:
         recording.transcript_segments = None
         recording.transcript_language = None
         recording.updated_at = datetime.now()
+
+        # Set overrides if provided, otherwise leave as None (use global defaults)
+        if model is not None:
+            recording.transcription_model = model
+        if language is not None:
+            recording.transcription_language = language
 
         session.commit()
 

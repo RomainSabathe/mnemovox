@@ -1,6 +1,13 @@
 document.addEventListener("DOMContentLoaded", () => {
   const form = document.getElementById("settings-form");
-  const toastContainer = document.getElementById("toast");
+  let toastContainer = document.getElementById("toast") || document.getElementById("toast-container");
+  
+  // Create toast container if it doesn't exist
+  if (!toastContainer) {
+    toastContainer = document.createElement("div");
+    toastContainer.id = "toast-container";
+    document.body.appendChild(toastContainer);
+  }
 
   function showToast(message, isError = false) {
     const toast = document.createElement("div");

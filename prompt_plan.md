@@ -401,7 +401,7 @@ Deliver:
 ---
 
 ```text
-PROMPT B/6: Config Manager Load & Save
+PROMPT B/6: Config Manager Load & Save ✅ COMPLETED
 
 Context:
   Extend `config.py` to support saving globals back to YAML.
@@ -429,7 +429,7 @@ Deliver:
 ---
 
 ```text
-PROMPT C/6: API Settings Endpoints
+PROMPT C/6: API Settings Endpoints ✅ COMPLETED
 
 Context:
   Expose GET/POST `/api/settings` to read & write global transcription defaults.
@@ -452,7 +452,7 @@ Deliver:
 ---
 
 ```text
-PROMPT D/6: Frontend Settings Page
+PROMPT D/6: Frontend Settings Page ✅ COMPLETED
 
 Context:
   Build `/settings` HTML + JS to manage global defaults.
@@ -479,7 +479,7 @@ Deliver:
 ---
 
 ```text
-PROMPT E/6: Detail Page Enhancements & Re-transcribe Modal
+PROMPT E/6: Detail Page Enhancements & Re-transcribe Modal ✅ COMPLETED
 
 Context:
   Extend detail page to show overrides and modal.

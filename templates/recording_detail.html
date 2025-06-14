@@ -77,6 +77,23 @@
     </div>
 </div>
 
+<div class="transcription-settings">
+    <h3>Transcription Settings</h3>
+    <div class="settings-meta">
+        <div class="meta-item">
+            <span class="meta-label">Current Model:</span>
+            <span>{{ recording.transcription_model if recording.transcription_model else config.whisper_model }}</span>
+        </div>
+        <div class="meta-item">
+            <span class="meta-label">Current Language:</span>
+            <span>{{ recording.transcription_language if recording.transcription_language else config.default_language }}</span>
+        </div>
+        <div class="meta-item">
+            <button id="btn-retranscribe" class="btn btn-secondary">Re-transcribe</button>
+        </div>
+    </div>
+</div>
+
 <h2>Audio Player</h2>
 <audio id="audio-player" class="audio-player" controls>
     {% set path_parts = recording.storage_path.split('.') %}
@@ -187,6 +204,50 @@
     </div>
 {% endif %}
 
+<!-- Re-transcribe Modal -->
+<div id="retranscribe-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <h3>Re-transcribe Recording</h3>
+        <p>Warning: this will overwrite the existing transcript.</p>
+        
+        <div class="modal-form">
+            <div class="form-group">
+                <label for="modal-model-select">Model:</label>
+                <select id="modal-model-select">
+                    <option value="tiny">Tiny</option>
+                    <option value="base">Base</option>
+                    <option value="small">Small</option>
+                    <option value="medium">Medium</option>
+                    <option value="large-v3-turbo">Large V3 Turbo</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="modal-language-select">Language:</label>
+                <select id="modal-language-select">
+                    <option value="auto">Auto Detect</option>
+                    <option value="en">English</option>
+                    <option value="fr">French</option>
+                    <option value="fr-CA">French (Canada)</option>
+                    <option value="es">Spanish</option>
+                    <option value="de">German</option>
+                    <option value="it">Italian</option>
+                    <option value="pt">Portuguese</option>
+                    <option value="ru">Russian</option>
+                    <option value="ja">Japanese</option>
+                    <option value="ko">Korean</option>
+                    <option value="zh">Chinese</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="modal-buttons">
+            <button id="modal-cancel-btn" class="btn btn-secondary">Cancel</button>
+            <button id="modal-submit-btn" class="btn btn-primary">Re-transcribe</button>
+        </div>
+    </div>
+</div>
+
 <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
     <a href="/recordings" style="color: #007bff; text-decoration: none;">&larr; Back to All Recordings</a>
 </div>
@@ -256,6 +317,96 @@
 #jump-to-current:hover {
     background-color: #0056b3;
 }
+
+/* Modal styles */
+.modal {
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 15% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    border-radius: 8px;
+    width: 400px;
+    max-width: 90%;
+}
+
+.modal-form .form-group {
+    margin-bottom: 15px;
+}
+
+.modal-form label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.modal-form select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.modal-buttons {
+    text-align: right;
+    margin-top: 20px;
+}
+
+.btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-left: 10px;
+}
+
+.btn-primary {
+    background-color: #007bff;
+    color: white;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btn:hover {
+    opacity: 0.9;
+}
+
+.transcription-settings {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 6px;
+}
+
+.transcription-settings h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+}
+
+.settings-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    align-items: center;
+}
+
+.settings-meta .meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
 </style>
 
 {% if recording.transcript_status == 'complete' and recording.transcript_segments %}
@@ -288,5 +439,8 @@ function retryTranscription() {
 }
 </script>
 {% endif %}
+
+<!-- Include retranscribe modal JavaScript -->
+<script src="/static/js/retranscribe.js"></script>
 
 {% endblock %}
