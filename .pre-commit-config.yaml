@@ -27,6 +27,6 @@ repos:
         entry: python -m pytest
         language: system
         types: [python]
-        pass_filenames: false
+        pass_filenames: true
         files: ^tests/.*\.py$
         args: [--tb=short, -x]
