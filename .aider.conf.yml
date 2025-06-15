@@ -5,4 +5,9 @@ read:
 cache-prompts: true
 auto-commits: false
 git-commit-verify: true
+lint: false
+test-cmd: "python -m pytest -v" 
+auto-test: true
+verbose: true
+yes-always: true
 editor: nvim
