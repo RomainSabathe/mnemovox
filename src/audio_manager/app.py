@@ -1,6 +1,7 @@
 # ABOUTME: FastAPI web application for audio recording manager
 # ABOUTME: Provides web interface and API for viewing recordings and transcripts
 
+import logging  # Added for logging
 import shutil
 import uuid
 from datetime import datetime
@@ -23,55 +24,91 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import text
 
-from .config import Config, save_config
+from .config import Config, get_config, save_config
 from .db import Recording, get_session, sync_fts
+
+logger = logging.getLogger(__name__)
 
 
 def run_transcription_task(recording_id: int, db_path_str: str):
     """Background task to process transcription for a recording."""
+    app_config = get_config()
+    base_storage_path = Path(app_config.storage_path)
+
     session = get_session(db_path_str)
     try:
         recording = session.query(Recording).filter_by(id=recording_id).first()
         if not recording:
             return
 
-        # Try to transcribe the recording
+        db_audio_path = Path(recording.storage_path)
+        if db_audio_path.is_absolute():
+            actual_audio_path = db_audio_path
+        else:
+            actual_audio_path = base_storage_path / db_audio_path
+
+        if not actual_audio_path.exists():
+            logger.error(
+                f"Audio file not found for transcription: {actual_audio_path} for recording ID {recording_id}"
+            )
+            recording.transcript_status = "error"
+            recording.updated_at = datetime.now()
+            session.commit()
+            return
+
         try:
             from .transcriber import transcribe_file
 
-            # Get the full path to the audio file
-            audio_path = recording.storage_path
+            # Determine model and language to use
+            model_to_use = (
+                recording.transcription_model
+                if recording.transcription_model
+                else app_config.whisper_model
+            )
+            language_to_use = (
+                recording.transcription_language
+                if recording.transcription_language
+                else app_config.default_language
+            )
 
-            # Perform transcription
-            result = transcribe_file(audio_path)
+            # Pass None for language if "auto" is selected, for faster-whisper's auto-detection
+            effective_language_param = (
+                language_to_use
+                if language_to_use and language_to_use.lower() != "auto"
+                else None
+            )
+
+            result = transcribe_file(
+                str(actual_audio_path),
+                model_name=model_to_use,
+                language=effective_language_param,
+            )
 
             if result:
-                full_text, segments = result
+                full_text, segments, detected_language = result
 
-                # Update recording with transcript data
                 recording.transcript_status = "complete"
                 recording.transcript_text = full_text
                 recording.transcript_segments = segments
-                recording.transcript_language = "en"  # TODO: detect language
+                recording.transcript_language = (
+                    detected_language  # Use language detected by model
+                )
                 recording.updated_at = datetime.now()
-
                 session.commit()
-
-                # CRITICAL: Sync to FTS table for search functionality
                 sync_fts(session, recording.id)
-
             else:
-                # Transcription failed
                 recording.transcript_status = "error"
                 recording.updated_at = datetime.now()
                 session.commit()
-
         except ImportError:
-            # If transcriber module doesn't exist, leave as pending
             # This allows tests to verify API behavior without failing transcription
+            # if the transcriber module isn't available in some test environments.
             pass
-        except Exception:
-            # On any transcription error, mark as failed
+        except Exception as e:
+            logger.error(
+                f"Transcription failed for recording ID {recording_id} ({actual_audio_path}): {e}",
+                exc_info=True,
+            )
             recording.transcript_status = "error"
             recording.updated_at = datetime.now()
             session.commit()
@@ -485,6 +522,8 @@ def create_app(config: Config, db_path: str) -> FastAPI:
         # Validate overrides if provided
         model = overrides.get("model")
         language = overrides.get("language")
+
+        logger.info(f"Got {model=}, {language=}")
 
         # Define valid values
         valid_models = {"tiny", "base", "small", "medium", "large-v3-turbo"}

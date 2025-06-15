@@ -18,11 +18,15 @@ def test_transcribe_file_success():
     ]
 
     # Mock whisper model and transcribe method
+    mock_info = MagicMock()
+    mock_info.language = "en"
     mock_model = MagicMock()
-    mock_model.transcribe.return_value = (mock_segments, {"language": "en"})
+    mock_model.transcribe.return_value = (mock_segments, mock_info)
 
     with patch("src.audio_manager.transcriber.WhisperModel", return_value=mock_model):
-        full_text, segments = transcribe_file("/fake/path/audio.wav", "base.en")
+        result = transcribe_file("/fake/path/audio.wav", "base.en")
+        assert result is not None
+        full_text, segments, detected_language = result
 
         # Check full text concatenation
         expected_text = "Hello, this is a test. This is the second segment."
@@ -41,6 +45,8 @@ def test_transcribe_file_success():
         assert segments[1]["text"] == "This is the second segment."
         assert segments[1]["confidence"] == 0.87
 
+        assert detected_language == "en"
+
         # Verify model was created with correct parameters
         from src.audio_manager.transcriber import WhisperModel
 
@@ -54,14 +60,19 @@ def test_transcribe_file_empty_segments():
     """Test transcription with no segments returned."""
     mock_segments = []
 
+    mock_info = MagicMock()
+    mock_info.language = "en"
     mock_model = MagicMock()
-    mock_model.transcribe.return_value = (mock_segments, {"language": "en"})
+    mock_model.transcribe.return_value = (mock_segments, mock_info)
 
     with patch("src.audio_manager.transcriber.WhisperModel", return_value=mock_model):
-        full_text, segments = transcribe_file("/fake/path/empty.wav", "base.en")
+        result = transcribe_file("/fake/path/empty.wav", "base.en")
+        assert result is not None
+        full_text, segments, detected_language = result
 
         assert full_text == ""
         assert segments == []
+        assert detected_language == "en"
 
 
 def test_transcribe_file_single_segment():
@@ -72,16 +83,21 @@ def test_transcribe_file_single_segment():
         )
     ]
 
+    mock_info = MagicMock()
+    mock_info.language = "en"
     mock_model = MagicMock()
-    mock_model.transcribe.return_value = (mock_segments, {"language": "en"})
+    mock_model.transcribe.return_value = (mock_segments, mock_info)
 
     with patch("src.audio_manager.transcriber.WhisperModel", return_value=mock_model):
-        full_text, segments = transcribe_file("/fake/path/single.wav", "small")
+        result = transcribe_file("/fake/path/single.wav", "small")
+        assert result is not None
+        full_text, segments, detected_language = result
 
         assert full_text == "Single segment audio file."
         assert len(segments) == 1
         assert segments[0]["text"] == "Single segment audio file."
         assert segments[0]["confidence"] == 0.92
+        assert detected_language == "en"
 
 
 def test_transcribe_file_handles_whisper_exception():
@@ -108,20 +124,26 @@ def test_transcribe_file_handles_model_creation_error():
 
 def test_transcribe_file_with_different_models():
     """Test transcription with different whisper models."""
-    mock_segments = [MagicMock(start=0.0, end=1.0, text="Test", confidence=0.9)]
+    mock_segments_data = [MagicMock(start=0.0, end=1.0, text="Test", confidence=0.9)]
 
+    mock_info = MagicMock()
+    mock_info.language = "fr"
     mock_model = MagicMock()
-    mock_model.transcribe.return_value = (mock_segments, {"language": "fr"})
+    mock_model.transcribe.return_value = (mock_segments_data, mock_info)
 
     # Test with different model sizes
     for model_name in ["tiny", "base", "small", "medium", "large-v2"]:
         with patch(
             "src.audio_manager.transcriber.WhisperModel", return_value=mock_model
-        ):
-            full_text, segments = transcribe_file("/fake/path/audio.wav", model_name)
+        ) as mock_whisper_model_constructor:
+            result = transcribe_file("/fake/path/audio.wav", model_name)
+            assert result is not None
+            full_text, segments, detected_language = result
 
             assert full_text == "Test"
             assert len(segments) == 1
+            assert detected_language == "fr"
+            mock_whisper_model_constructor.assert_called_with(model_name, device="cpu")
 
 
 def test_transcribe_file_preserves_segment_timing():
@@ -132,11 +154,15 @@ def test_transcribe_file_preserves_segment_timing():
         MagicMock(start=8.1, end=10.5, text="Third", confidence=0.91),
     ]
 
+    mock_info = MagicMock()
+    mock_info.language = "en"
     mock_model = MagicMock()
-    mock_model.transcribe.return_value = (mock_segments, {"language": "en"})
+    mock_model.transcribe.return_value = (mock_segments, mock_info)
 
     with patch("src.audio_manager.transcriber.WhisperModel", return_value=mock_model):
-        full_text, segments = transcribe_file("/fake/path/timing.wav", "base.en")
+        result = transcribe_file("/fake/path/timing.wav", "base.en")
+        assert result is not None
+        full_text, segments, detected_language = result
 
         # Check timing precision is maintained
         assert segments[0]["start"] == 1.25
@@ -145,6 +171,7 @@ def test_transcribe_file_preserves_segment_timing():
         assert segments[1]["end"] == 7.33
         assert segments[2]["start"] == 8.1
         assert segments[2]["end"] == 10.5
+        assert detected_language == "en"
 
         # Check full text concatenation
         assert full_text == "First Second Third"
@@ -160,14 +187,19 @@ def test_transcribe_file_handles_missing_confidence():
     # Remove confidence attribute
     del mock_segments[0].confidence
 
+    mock_info = MagicMock()
+    mock_info.language = "en"
     mock_model = MagicMock()
-    mock_model.transcribe.return_value = (mock_segments, {"language": "en"})
+    mock_model.transcribe.return_value = (mock_segments, mock_info)
 
     with patch("src.audio_manager.transcriber.WhisperModel", return_value=mock_model):
-        full_text, segments = transcribe_file("/fake/path/no_conf.wav", "base.en")
+        result = transcribe_file("/fake/path/no_conf.wav", "base.en")
+        assert result is not None
+        full_text, segments, detected_language = result
 
         assert full_text == "No confidence"
         assert segments[0]["confidence"] is None
+        assert detected_language == "en"
 
 
 # Integration tests with real audio file
@@ -188,7 +220,7 @@ def test_transcribe_real_audio_file_tiny_model():
         )
 
     assert result is not None
-    full_text, segments = result
+    full_text, segments, detected_language = result
 
     # The audio file contains "This is a test"
     assert "test" in full_text.lower()
@@ -219,7 +251,7 @@ def test_transcribe_real_audio_file_base_model():
         )
 
     assert result is not None
-    full_text, segments = result
+    full_text, segments, detected_language = result
 
     # The audio file should transcribe to something close to "This is a test"
     # Allow for some variation in transcription
@@ -256,7 +288,7 @@ def test_transcribe_real_audio_file_segment_timing():
         )
 
     assert result is not None
-    full_text, segments = result
+    full_text, segments, detected_language = result
 
     # Segments should be in chronological order
     for i in range(1, len(segments)):

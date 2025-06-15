@@ -32,6 +32,11 @@ def test_config(tmp_path):
         whisper_model="base.en",
         sample_rate=16000,
         max_concurrent_transcriptions=2,
+        default_language="en",  # Ensure default_language is in test_config
+        # Add other necessary fields if missing from Config defaults
+        upload_temp_path=str(tmp_path / "uploads_pipeline"),
+        fts_enabled=True,
+        items_per_page=10,
     )
     return config
 
@@ -67,24 +72,31 @@ async def test_transcription_pipeline_processes_pending_record(test_config, test
         channels=1,
         file_size_bytes=1024,
         transcript_status="pending",
+        transcription_model="tiny",  # Test with override
+        transcription_language="fr",  # Test with override
     )
     session.add(recording)
     session.commit()
     record_id = recording.id
     session.close()
 
-    # Mock transcription result
-    mock_transcript = (
-        "Hello world test transcript",
-        [
-            {"start": 0.0, "end": 2.0, "text": "Hello world", "confidence": 0.95},
-            {"start": 2.0, "end": 4.0, "text": "test transcript", "confidence": 0.88},
-        ],
+    # Mock transcription result (now a 3-tuple)
+    mock_transcript_text = "Bonjour le monde test transcript"
+    mock_segments_data = [
+        {"start": 0.0, "end": 2.0, "text": "Bonjour le monde", "confidence": 0.95},
+        {"start": 2.0, "end": 4.0, "text": "test transcript", "confidence": 0.88},
+    ]
+    mock_detected_lang = "fr"  # Should match the override or detected
+    mock_transcript_result = (
+        mock_transcript_text,
+        mock_segments_data,
+        mock_detected_lang,
     )
 
     with patch(
-        "src.audio_manager.pipeline.transcribe_file", return_value=mock_transcript
-    ):
+        "src.audio_manager.pipeline.transcribe_file",
+        return_value=mock_transcript_result,
+    ) as mock_transcribe_call:
         pipeline = TranscriptionPipeline(test_config, test_db)
         await pipeline.process_pending_transcriptions()
 
@@ -93,10 +105,17 @@ async def test_transcription_pipeline_processes_pending_record(test_config, test
     updated_record = session.query(Recording).filter_by(id=record_id).first()
 
     assert updated_record.transcript_status == "complete"
-    assert updated_record.transcript_text == "Hello world test transcript"
+    assert updated_record.transcript_text == mock_transcript_text
     assert updated_record.transcript_segments is not None
     assert len(updated_record.transcript_segments) == 2
-    assert updated_record.transcript_segments[0]["text"] == "Hello world"
+    assert updated_record.transcript_segments[0]["text"] == "Bonjour le monde"
+    assert updated_record.transcript_language == mock_detected_lang
+
+    # Verify transcribe_file was called with overridden model and language
+    mock_transcribe_call.assert_called_once()
+    call_args = mock_transcribe_call.call_args[0]
+    assert call_args[1] == "tiny"  # model_name
+    assert call_args[2] == "fr"  # language
 
     session.close()
 
@@ -174,17 +193,18 @@ async def test_transcription_pipeline_processes_multiple_records(test_config, te
         return (
             "Mock transcript",
             [{"start": 0, "end": 1, "text": "Mock", "confidence": 0.9}],
+            "en",  # Add detected_language
         )
 
     with patch(
         "src.audio_manager.pipeline.transcribe_file",
         side_effect=mock_transcribe_with_delay,
-    ):
+    ) as mock_transcribe_call_multi:  # Capture the mock to check call_count
         pipeline = TranscriptionPipeline(test_config, test_db)
         await pipeline.process_pending_transcriptions()
 
     # Check that all 5 records were processed
-    assert call_count == 5
+    assert mock_transcribe_call_multi.call_count == 5
 
     # Verify all records were marked as complete
     session = get_session(test_db)
@@ -232,13 +252,17 @@ def test_process_pending_transcriptions_function(test_config, test_db):
     record_id = recording.id
     session.close()
 
-    # Mock transcription
-    mock_result = (
-        "Function test",
-        [{"start": 0, "end": 1, "text": "Function test", "confidence": 0.9}],
-    )
+    # Mock transcription (3-tuple)
+    mock_text_func = "Function test"
+    mock_segments_func = [
+        {"start": 0, "end": 1, "text": "Function test", "confidence": 0.9}
+    ]
+    mock_lang_func = "en"
+    mock_result_func = (mock_text_func, mock_segments_func, mock_lang_func)
 
-    with patch("src.audio_manager.pipeline.transcribe_file", return_value=mock_result):
+    with patch(
+        "src.audio_manager.pipeline.transcribe_file", return_value=mock_result_func
+    ):
         # Run the function (should work synchronously)
         asyncio.run(process_pending_transcriptions(test_config, test_db))
 
@@ -247,7 +271,8 @@ def test_process_pending_transcriptions_function(test_config, test_db):
     updated_record = session.query(Recording).filter_by(id=record_id).first()
 
     assert updated_record.transcript_status == "complete"
-    assert updated_record.transcript_text == "Function test"
+    assert updated_record.transcript_text == mock_text_func
+    assert updated_record.transcript_language == mock_lang_func
 
     session.close()
 
@@ -564,9 +589,9 @@ async def test_transcription_pipeline_updates_fts(test_config, test_db_with_fts)
     session = get_session(test_db_with_fts)
     try:
         recording = session.query(Recording).filter_by(id=recording_id).first()
-        assert recording.transcript_status == "complete", (
-            "Transcription should complete"
-        )
+        assert (
+            recording.transcript_status == "complete"
+        ), "Transcription should complete"
         assert recording.transcript_text is not None, "Should have transcript text"
 
         # CRITICAL: Verify FTS indexing happened automatically
@@ -592,9 +617,9 @@ async def test_transcription_pipeline_updates_fts(test_config, test_db_with_fts)
             )
         ).fetchall()
 
-        assert len(search_results) == 1, (
-            "Should be able to search the transcribed recording"
-        )
+        assert (
+            len(search_results) == 1
+        ), "Should be able to search the transcribed recording"
         assert search_results[0][0] == "fts_test.wav"
 
     finally:
