@@ -70,7 +70,6 @@ def transcribe_file(
         logger.info(
             f"Transcription completed: {len(segments)} segments, {len(full_text)} characters. Detected language: {detected_language}"
         )
-        logger.info(f"{full_text=}")
 
         return full_text, segments, detected_language
 
