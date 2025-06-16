@@ -512,7 +512,7 @@ Deliver:
 ---
 
 ```text
-PROMPT F/6: Waveform Display Integration
+PROMPT F/6: Waveform Display Integration ✅ COMPLETED
 
 Context:
   Add wavesurfer.js waveform to detail page.

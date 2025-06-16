@@ -95,7 +95,16 @@
 </div>
 
 <h2>Audio Player</h2>
-<audio id="audio-player" class="audio-player" controls>
+<div id="waveform-container">
+    <div id="waveform"></div>
+    <div class="waveform-controls">
+        <button id="btn-play-pause" class="btn btn-primary">Play</button>
+        <div class="time-display">
+            <span id="current-time">0:00</span> / <span id="total-time">0:00</span>
+        </div>
+    </div>
+</div>
+<audio id="audio-player" class="audio-player" preload="metadata">
     {% set path_parts = recording.storage_path.split('.') %}
     {% set file_ext = path_parts[-1].lower() if '.' in recording.storage_path else 'wav' %}
     <source src="/audio/{{ recording.storage_path }}" type="audio/{% if file_ext == 'mp3' %}mpeg{% elif file_ext == 'm4a' %}mp4{% else %}{{ file_ext }}{% endif %}">
@@ -318,6 +327,40 @@
     background-color: #0056b3;
 }
 
+/* Waveform styles */
+#waveform-container {
+    margin-top: 20px;
+    margin-bottom: 20px;
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 6px;
+}
+
+#waveform {
+    width: 100%;
+    height: 100px;
+    background-color: #fff;
+    border-radius: 4px;
+}
+
+.waveform-controls {
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.time-display {
+    font-family: monospace;
+    font-size: 1.1em;
+    color: #333;
+}
+
+/* Hide original audio player */
+#audio-player {
+    display: none;
+}
+
 /* Modal styles */
 .modal {
     position: fixed;
@@ -361,28 +404,6 @@
     margin-top: 20px;
 }
 
-.btn {
-    padding: 8px 16px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    margin-left: 10px;
-}
-
-.btn-primary {
-    background-color: #007bff;
-    color: white;
-}
-
-.btn-secondary {
-    background-color: #6c757d;
-    color: white;
-}
-
-.btn:hover {
-    opacity: 0.9;
-}
-
 .transcription-settings {
     margin-top: 20px;
     padding: 15px;
@@ -408,6 +429,9 @@
     gap: 5px;
 }
 </style>
+
+<!-- Load WaveSurfer.js library -->
+<script src="https://unpkg.com/wavesurfer.js@7"></script>
 
 {% if recording.transcript_status == 'complete' and recording.transcript_segments %}
 <!-- Include the interactive transcript JavaScript -->
@@ -442,5 +466,8 @@ function retryTranscription() {
 
 <!-- Include retranscribe modal JavaScript -->
 <script src="/static/js/retranscribe.js"></script>
+
+<!-- Include waveform display JavaScript -->
+<script src="/static/js/waveform.js"></script>
 
 {% endblock %}
