@@ -6,6 +6,7 @@ cache-prompts: true
 auto-commits: false
 git-commit-verify: true
 lint: false
+auto-lint: false
 test-cmd: "python -m pytest -v" 
 auto-test: false
 verbose: false
