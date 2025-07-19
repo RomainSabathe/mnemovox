@@ -1,4 +1,4 @@
-- 1. [ ] The app has a search functionality that can be accessed with the /search endpoint.
+- 1. [x] The app has a search functionality that can be accessed with the /search endpoint.
          However, there is no button on the main page (`/`, `templates/recordings_list.html`) to access it. Add a button or a
          link to go to the search page. Find a suitable location for the button or link.
 - 2. [ ] The app has an upload functionality that can be accessed with the

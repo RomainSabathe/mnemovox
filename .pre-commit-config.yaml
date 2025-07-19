@@ -24,7 +24,7 @@ repos:
       - id: pytest-changed
         name: pytest on changed files
         description: Run pytest on changed Python files only
-        entry: python -m pytest
+        entry: sh -c 'PYTHONPATH=. uv run pytest'
         language: system
         types: [python]
         pass_filenames: true

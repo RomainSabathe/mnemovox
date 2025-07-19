@@ -327,3 +327,17 @@ def test_recordings_list_page_single_page():
         assert "Page 1 of 1" in html
         assert "Next &raquo;" not in html
         assert "&laquo; Previous" not in html
+
+
+def test_recordings_list_page_search_button(test_app_with_recordings):
+    """Test that search button/link is present on recordings list page."""
+    client, config, db_path = test_app_with_recordings
+
+    response = client.get("/recordings")
+
+    assert response.status_code == 200
+    html = response.text
+
+    # Check for search button/link
+    assert "Search" in html
+    assert "/search" in html
