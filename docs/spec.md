@@ -456,8 +456,7 @@ HTML page: GET /search?q=…
 
     Launch worker processes
 
-Phase 2.5: UI & Quality-of-Life Improvements  
-============================================
+# Phase 2.5: UI & Quality-of-Life Improvements
 
 This document specifies everything a developer needs to implement the following post-Phase 2 features:  
  • Audio waveform display (wavesurfer.js)  
@@ -495,12 +494,13 @@ This document specifies everything a developer needs to implement the following 
  – Two dropdowns pre-filled with the recording’s current settings  
  – Warning text: “Warning: this will overwrite the existing transcript.”  
  – “Cancel” and “Re-transcribe” buttons  
- • Submitting will:  
- 1. Persist new override values into the two columns  
- 2. Enqueue or start the transcription job with those settings  
- 3. On success, refresh the transcript UI; on failure show an error toast
+ • Submitting will:
 
-2.  Architecture & Workflow
+1.  Persist new override values into the two columns
+2.  Enqueue or start the transcription job with those settings
+3.  On success, refresh the transcript UI; on failure show an error toast
+
+4.  Architecture & Workflow
 
 ---
 
