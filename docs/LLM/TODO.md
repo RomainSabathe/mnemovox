@@ -4,7 +4,7 @@
 - 2. [x] The app has an upload functionality that can be accessed with the
          `/api/recordings/upload`
          endpoint. This endpoint can be accessed from the API. An front-end implementation is supposed to be accessible from the main page (`templates/recordings_list.html`), but it points to an endpoint that has not been created yet (`/recordings/upload`). You should create this endpoint and the corresponding frontend page.
-- 3. [ ] In the search page (`templates/search.html`), the results are shown as a list
+- 3. [x] In the search page (`templates/search.html`), the results are shown as a list
          of recording filename, search score, an excerpt, etc. This is working well. However,
          I would like the search term(s) to be highlighted in bold in the excerpt. I
          suspect you will need to modify the `app.py:_generate_excerpt` function for this.

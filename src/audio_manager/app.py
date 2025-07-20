@@ -832,9 +832,13 @@ def create_app(config: Config, db_path: str) -> FastAPI:
 
                     # Generate excerpt
                     if highlighted and highlighted.strip():
-                        excerpt = _generate_excerpt(highlighted, search_term)
+                        excerpt = _generate_excerpt_with_highlighting(
+                            highlighted, search_term
+                        )
                     else:
-                        excerpt = _generate_excerpt(transcript_text or "", search_term)
+                        excerpt = _generate_excerpt_with_highlighting(
+                            transcript_text or "", search_term
+                        )
 
                     results.append(
                         {
@@ -966,9 +970,11 @@ def create_app(config: Config, db_path: str) -> FastAPI:
 
             # Generate excerpt from highlighted text or transcript
             if highlighted and highlighted.strip():
-                excerpt = _generate_excerpt(highlighted, search_term)
+                excerpt = _generate_excerpt_with_highlighting(highlighted, search_term)
             else:
-                excerpt = _generate_excerpt(transcript_text or "", search_term)
+                excerpt = _generate_excerpt_with_highlighting(
+                    transcript_text or "", search_term
+                )
 
             results.append(
                 {
@@ -1105,6 +1111,160 @@ def create_app(config: Config, db_path: str) -> FastAPI:
         )
 
     return app
+
+
+def _generate_excerpt_with_highlighting(
+    text: str, search_term: str, max_length: int = 200
+) -> str:
+    """Generate a relevant excerpt around the search term, preserving FTS highlighting."""
+    if not text:
+        return ""
+
+    # Check if text already contains FTS highlighting (contains <mark> tags)
+    if "<mark>" in text and "</mark>" in text:
+        return _extract_excerpt_with_fts_highlighting(text, search_term, max_length)
+    else:
+        # Fallback: manually add highlighting for search term
+        return _extract_excerpt_with_manual_highlighting(text, search_term, max_length)
+
+
+def _extract_excerpt_with_fts_highlighting(
+    text: str, search_term: str, max_length: int
+) -> str:
+    """Extract excerpt from text that already contains FTS <mark> highlighting."""
+    import re
+
+    # Find the first <mark> tag position to center the excerpt around it
+    mark_match = re.search(r"<mark>", text)
+    if not mark_match:
+        # Fallback if no marks found
+        return _extract_excerpt_with_manual_highlighting(text, search_term, max_length)
+
+    mark_start = mark_match.start()
+
+    # Create a clean version without tags to calculate positions
+    clean_text = re.sub(r"</?mark>", "", text)
+
+    # Map positions from marked text to clean text
+    clean_mark_pos = mark_start
+    for match in re.finditer(r"</?mark>", text[:mark_start]):
+        clean_mark_pos -= len(match.group())
+
+    # Calculate excerpt bounds in clean text space
+    excerpt_start = max(0, clean_mark_pos - max_length // 3)
+    excerpt_end = min(
+        len(clean_text), clean_mark_pos + len(search_term) + max_length // 3
+    )
+
+    # Adjust to word boundaries in clean text
+    if excerpt_start > 0:
+        space_pos = clean_text.find(" ", excerpt_start)
+        if space_pos != -1 and space_pos < clean_mark_pos:
+            excerpt_start = space_pos + 1
+
+    if excerpt_end < len(clean_text):
+        space_pos = clean_text.rfind(
+            " ", clean_mark_pos + len(search_term), excerpt_end
+        )
+        if space_pos != -1:
+            excerpt_end = space_pos
+
+    # Now extract the corresponding portion from the marked text
+    # Map clean text positions back to marked text positions
+    marked_start = excerpt_start
+    marked_end = excerpt_end
+
+    # Count tags before excerpt_start to adjust position
+    clean_pos = 0
+    marked_pos = 0
+
+    while clean_pos < excerpt_start and marked_pos < len(text):
+        if text[marked_pos : marked_pos + 6] == "<mark>":
+            marked_pos += 6
+            marked_start += 6
+        elif text[marked_pos : marked_pos + 7] == "</mark>":
+            marked_pos += 7
+            marked_start += 7
+        else:
+            marked_pos += 1
+            clean_pos += 1
+
+    # Count tags before excerpt_end to adjust position
+    clean_pos = 0
+    marked_pos = 0
+
+    while clean_pos < excerpt_end and marked_pos < len(text):
+        if text[marked_pos : marked_pos + 6] == "<mark>":
+            marked_pos += 6
+            marked_end += 6
+        elif text[marked_pos : marked_pos + 7] == "</mark>":
+            marked_pos += 7
+            marked_end += 7
+        else:
+            marked_pos += 1
+            clean_pos += 1
+
+    # Extract the excerpt with preserved markup
+    excerpt = text[marked_start:marked_end]
+
+    # Add ellipsis if needed
+    if excerpt_start > 0:
+        excerpt = "..." + excerpt
+    if excerpt_end < len(clean_text):
+        excerpt = excerpt + "..."
+
+    return excerpt
+
+
+def _extract_excerpt_with_manual_highlighting(
+    text: str, search_term: str, max_length: int
+) -> str:
+    """Extract excerpt and manually add <mark> highlighting around search terms."""
+    import re
+
+    # Find the search term in the text (case insensitive)
+    search_lower = search_term.lower()
+    text_lower = text.lower()
+
+    search_pos = text_lower.find(search_lower)
+    if search_pos == -1:
+        # If not found, return the beginning of the text
+        return text[:max_length] + ("..." if len(text) > max_length else "")
+
+    # Calculate excerpt bounds around the search term
+    search_end = search_pos + len(search_term)
+    excerpt_start = max(0, search_pos - max_length // 3)
+    excerpt_end = min(len(text), search_end + max_length // 3)
+
+    # Adjust to word boundaries if possible
+    if excerpt_start > 0:
+        space_pos = text.find(" ", excerpt_start)
+        if space_pos != -1 and space_pos < search_pos:
+            excerpt_start = space_pos + 1
+
+    if excerpt_end < len(text):
+        space_pos = text.rfind(" ", search_end, excerpt_end)
+        if space_pos != -1:
+            excerpt_end = space_pos
+
+    # Extract the excerpt
+    excerpt = text[excerpt_start:excerpt_end]
+
+    # Add manual highlighting using case-insensitive replacement
+    highlighted_excerpt = re.sub(
+        re.escape(search_term),
+        f"<mark>{search_term}</mark>",
+        excerpt,
+        flags=re.IGNORECASE,
+    )
+
+    # Add ellipsis if needed
+    if excerpt_start > 0:
+        highlighted_excerpt = "..." + highlighted_excerpt
+    if excerpt_end < len(text):
+        highlighted_excerpt = highlighted_excerpt + "..."
+
+    return highlighted_excerpt
 
 
 # Entry point for running the application

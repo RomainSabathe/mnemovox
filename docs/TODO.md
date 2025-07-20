@@ -1,9 +1,9 @@
 # Simple-ish changes, frontend
 
-- [ ] Add a search button on the main page (right now we have to use /search)
-- [ ] The "Upload files directly" button on the main page is broken
+- [x] Add a search button on the main page (right now we have to use /search)
+- [x] The "Upload files directly" button on the main page is broken
 - [ ] Show transcription's metadata (model used, time spent,...)
-- [ ] In the search, highlight in bold the detected terms/words
+- [x] In the search, highlight in bold the detected terms/words
 
 # Simple-ish changes, backend
 
@@ -37,3 +37,4 @@
 - [ ] Change UI to have: recordings on the left side, transcription on the right. We can
       quickly change from one recording to the next. The search bar is directly integrated
       and dynamically updates the list of recordings on the left.
+- [ ] Add fuzzy matching to the search (e.g. via fzf)
