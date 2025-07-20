@@ -175,8 +175,9 @@ def test_upload_integration_with_database():
             assert recording.original_filename == "integration_test.wav"
             # Background task might complete immediately with small test files
             assert recording.transcript_status in ["pending", "complete", "error"]
-            # File should have been moved to storage
-            assert Path(recording.storage_path).exists()
+            # File should have been moved to storage (storage_path is now relative)
+            full_storage_path = Path(config.storage_path) / recording.storage_path
+            assert full_storage_path.exists()
         finally:
             session.close()
 
@@ -282,8 +283,8 @@ def test_upload_real_audio_file_with_metadata():
             # Background task might complete immediately with small test files
             assert recording.transcript_status in ["pending", "complete", "error"]
 
-            # Verify file was moved to storage with correct structure
-            storage_path = Path(recording.storage_path)
+            # Verify file was moved to storage with correct structure (storage_path is now relative)
+            storage_path = Path(config.storage_path) / recording.storage_path
             assert storage_path.exists()
             assert storage_path.name.endswith(".wav")
 

@@ -199,6 +199,159 @@ def create_app(config: Config, db_path: str) -> FastAPI:
             context={"recordings": recordings, "pagination": pagination},
         )
 
+    @app.get("/recordings/upload", response_class=HTMLResponse)
+    async def upload_page(request: Request):
+        """Display upload form for new recordings."""
+        return templates.TemplateResponse(
+            request=request,
+            name="upload.html",
+            context={},
+        )
+
+    @app.post("/recordings/upload", response_class=HTMLResponse)
+    async def upload_recording(
+        request: Request,
+        file: UploadFile = File(...),
+        background_tasks: BackgroundTasks = BackgroundTasks(),
+    ):
+        """Handle recording upload from web form."""
+        try:
+            # Validate file extension
+            if not file.filename:
+                return templates.TemplateResponse(
+                    request=request,
+                    name="upload.html",
+                    context={"error": "No filename provided"},
+                )
+
+            file_path = Path(file.filename)
+            file_extension = file_path.suffix.lower()
+
+            # Check if it's a valid audio file extension
+            valid_extensions = {".wav", ".mp3", ".m4a"}
+            if file_extension not in valid_extensions:
+                return templates.TemplateResponse(
+                    request=request,
+                    name="upload.html",
+                    context={
+                        "error": f"Invalid file extension. Supported: {', '.join(valid_extensions)}"
+                    },
+                )
+
+            # Create upload temp directory if it doesn't exist
+            upload_temp_path = Path(config.upload_temp_path)
+            upload_temp_path.mkdir(parents=True, exist_ok=True)
+
+            # Generate unique filename to avoid conflicts
+            temp_filename = f"{uuid.uuid4().hex}_{file.filename}"
+            temp_file_path = upload_temp_path / temp_filename
+
+            # Save uploaded file to temp location
+            with open(temp_file_path, "wb") as buffer:
+                shutil.copyfileobj(file.file, buffer)
+
+            # Move uploaded file to storage and create database record
+            # This reuses the logic from the API endpoint
+            from .audio_utils import generate_internal_filename, probe_metadata
+
+            try:
+                # Generate internal filename and storage path
+                internal_filename = generate_internal_filename(file.filename)
+
+                # Create storage directory structure (YYYY/MM-DD)
+                now = datetime.now()
+                storage_subdir = (
+                    Path(config.storage_path)
+                    / now.strftime("%Y")
+                    / now.strftime("%m-%d")
+                )
+                storage_subdir.mkdir(parents=True, exist_ok=True)
+                final_storage_path = storage_subdir / internal_filename
+
+                # Move file to final storage location
+                shutil.move(str(temp_file_path), str(final_storage_path))
+
+                # Try to extract metadata, but don't fail if it doesn't work
+                try:
+                    metadata = probe_metadata(str(final_storage_path))
+                    if metadata:
+                        duration = metadata.get("duration")
+                        audio_format = metadata.get("format")
+                        sample_rate_meta = metadata.get("sample_rate")
+                        channels = metadata.get("channels")
+                    else:
+                        duration = None
+                        audio_format = None
+                        sample_rate_meta = None
+                        channels = None
+                    file_size = final_storage_path.stat().st_size
+                except Exception:
+                    # If metadata extraction fails, use defaults
+                    duration = None
+                    audio_format = file_extension[1:]  # Remove the dot
+                    sample_rate_meta = None
+                    channels = None
+                    file_size = (
+                        final_storage_path.stat().st_size
+                        if final_storage_path.exists()
+                        else 0
+                    )
+
+                # Create database record
+                session = get_session(db_path)
+                try:
+                    # Store relative path for transcription compatibility
+                    relative_storage_path = str(
+                        Path(now.strftime("%Y"))
+                        / now.strftime("%m-%d")
+                        / internal_filename
+                    )
+                    recording = Recording(
+                        original_filename=file.filename,
+                        internal_filename=internal_filename,
+                        storage_path=relative_storage_path,
+                        import_timestamp=now,
+                        duration_seconds=duration,
+                        audio_format=audio_format,
+                        sample_rate=sample_rate_meta,
+                        channels=channels,
+                        file_size_bytes=file_size,
+                        transcript_status="pending",
+                    )
+
+                    session.add(recording)
+                    session.commit()
+
+                    # Queue background transcription task
+                    background_tasks.add_task(
+                        run_transcription_task, recording.id, db_path
+                    )
+
+                    # Redirect to recordings list on success
+                    return RedirectResponse(url="/recordings", status_code=302)
+
+                finally:
+                    session.close()
+
+            except Exception as move_error:
+                # If moving fails, the temp file might still exist
+                return templates.TemplateResponse(
+                    request=request,
+                    name="upload.html",
+                    context={"error": f"Failed to process uploaded file: {move_error}"},
+                )
+
+        except Exception as e:
+            # Clean up temp file if something went wrong
+            if "temp_file_path" in locals() and temp_file_path.exists():
+                temp_file_path.unlink()
+
+            return templates.TemplateResponse(
+                request=request,
+                name="upload.html",
+                context={"error": f"Upload failed: {str(e)}"},
+            )
+
     @app.get("/recordings/{recording_id}", response_class=HTMLResponse)
     async def recording_detail(
         request: Request, recording_id: int, session=Depends(get_db_session)
@@ -457,10 +610,16 @@ def create_app(config: Config, db_path: str) -> FastAPI:
                 # Create database record
                 session = get_session(db_path)
                 try:
+                    # Store relative path for transcription compatibility
+                    relative_storage_path = str(
+                        Path(now.strftime("%Y"))
+                        / now.strftime("%m-%d")
+                        / internal_filename
+                    )
                     recording = Recording(
                         original_filename=file.filename,
                         internal_filename=internal_filename,
-                        storage_path=str(final_storage_path),
+                        storage_path=relative_storage_path,
                         import_timestamp=now,
                         duration_seconds=duration,
                         audio_format=audio_format,
@@ -952,7 +1111,6 @@ def create_app(config: Config, db_path: str) -> FastAPI:
 if __name__ == "__main__":
     import uvicorn
 
-    from .config import get_config
     from .db import init_db
 
     # Load configuration

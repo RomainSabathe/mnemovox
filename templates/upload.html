@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Recording - Audio Recording Manager{% endblock %}
+
+{% block content %}
+<h1>Upload New Recording</h1>
+
+{% if error %}
+<div style="background-color: #f8d7da; color: #721c24; padding: 15px; margin-bottom: 20px; border-radius: 4px; border: 1px solid #f5c6cb;">
+    <strong>Error:</strong> {{ error }}
+</div>
+{% endif %}
+
+<form method="post" enctype="multipart/form-data" style="max-width: 600px;">
+    <div style="margin-bottom: 20px;">
+        <label for="file" style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">
+            Select Audio File:
+        </label>
+        <input 
+            type="file" 
+            id="file" 
+            name="file" 
+            accept=".wav,.mp3,.m4a,audio/wav,audio/mpeg,audio/mp4"
+            required
+            style="width: 100%; padding: 8px; border: 2px solid #ddd; border-radius: 4px; font-size: 16px;"
+        >
+        <small style="color: #666; margin-top: 5px; display: block;">
+            Supported formats: WAV, MP3, M4A (max file size: varies by server configuration)
+        </small>
+    </div>
+
+    <div style="margin-bottom: 20px;">
+        <button 
+            type="submit" 
+            class="btn btn-primary"
+            style="background-color: #007bff; color: white; padding: 12px 24px; border: none; border-radius: 4px; font-size: 16px; cursor: pointer;"
+        >
+            Upload Recording
+        </button>
+        <a 
+            href="/recordings" 
+            style="background-color: #6c757d; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; margin-left: 10px; display: inline-block;"
+        >
+            Cancel
+        </a>
+    </div>
+</form>
+
+<div style="margin-top: 30px; padding: 20px; background-color: #f8f9fa; border-radius: 6px;">
+    <h3 style="margin-top: 0;">Upload Instructions</h3>
+    <ul style="margin-bottom: 0;">
+        <li><strong>Supported formats:</strong> WAV, MP3, M4A</li>
+        <li><strong>Processing:</strong> Files will be automatically transcribed after upload</li>
+        <li><strong>Storage:</strong> Files are stored securely and organized by date</li>
+        <li><strong>Transcription:</strong> May take a few minutes depending on file length</li>
+    </ul>
+</div>
+
+<script>
+// Basic file validation
+document.getElementById('file').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const allowedTypes = ['audio/wav', 'audio/mpeg', 'audio/mp4', 'audio/x-wav'];
+        const allowedExtensions = ['.wav', '.mp3', '.m4a'];
+        
+        const fileName = file.name.toLowerCase();
+        const hasValidExtension = allowedExtensions.some(ext => fileName.endsWith(ext));
+        const hasValidType = allowedTypes.includes(file.type) || hasValidExtension;
+        
+        if (!hasValidType) {
+            alert('Please select a valid audio file (WAV, MP3, or M4A)');
+            e.target.value = '';
+        }
+    }
+});
+
+// Show upload progress
+document.querySelector('form').addEventListener('submit', function(e) {
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    const fileInput = e.target.querySelector('input[type="file"]');
+    
+    if (!fileInput.files.length) {
+        alert('Please select a file to upload');
+        e.preventDefault();
+        return;
+    }
+    
+    submitBtn.textContent = 'Uploading...';
+    submitBtn.disabled = true;
+});
+</script>
+{% endblock %}

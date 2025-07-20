@@ -1,7 +1,7 @@
 - 1. [x] The app has a search functionality that can be accessed with the /search endpoint.
          However, there is no button on the main page (`/`, `templates/recordings_list.html`) to access it. Add a button or a
          link to go to the search page. Find a suitable location for the button or link.
-- 2. [ ] The app has an upload functionality that can be accessed with the
+- 2. [x] The app has an upload functionality that can be accessed with the
          `/api/recordings/upload`
          endpoint. This endpoint can be accessed from the API. An front-end implementation is supposed to be accessible from the main page (`templates/recordings_list.html`), but it points to an endpoint that has not been created yet (`/recordings/upload`). You should create this endpoint and the corresponding frontend page.
 - 3. [ ] In the search page (`templates/search.html`), the results are shown as a list
