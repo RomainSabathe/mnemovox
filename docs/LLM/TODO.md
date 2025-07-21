@@ -8,10 +8,14 @@
          of recording filename, search score, an excerpt, etc. This is working well. However,
          I would like the search term(s) to be highlighted in bold in the excerpt. I
          suspect you will need to modify the `app.py:_generate_excerpt` function for this.
-- 4. [ ] Recordings cannot be deleted at the moment. You should implement this
+- 4. [x] Recordings cannot be deleted at the moment. You should implement this
          functionality in the backend (deletes the entry in all databases, as well as the
          corresponding audio file) and in the frontend (on the `templates/recordings_list.html`
          page and on the `templates/recording_detail.html`). Deletion SHOULD bring up a
          confirmation pop up.
-- 5. [ ] Add a Dockerfile and a docker-compose.yml file to serve the application in a
+- 5. [ ] The application logic currently lives under `src/audio_manager`. This is wrong
+         for 2 reasons: 1. we shouldn't need the logic to live under `src/`, 2. the app is
+         actually called `mnemovox`, not `audio_manager`. So the application should ultimately
+         live under `mnemovox/`. Move all the files and adjust the imports accordingly.
+- 6. [ ] Add a Dockerfile and a docker-compose.yml file to serve the application in a
          self-hosted fashion. Update the README.md accordingly.

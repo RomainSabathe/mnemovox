@@ -71,6 +71,10 @@
             </td>
             <td>
                 <a href="/recordings/{{ recording.id }}">View Details</a>
+                <button onclick="deleteRecording({{ recording.id }}, '{{ recording.original_filename }}')" 
+                        style="background-color: #dc3545; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; margin-left: 10px; font-size: 0.9em;">
+                    Delete
+                </button>
             </td>
         </tr>
         {% endfor %}
@@ -168,4 +172,45 @@
         <li><strong>Web Upload:</strong> <a href="/recordings/upload">Upload files directly</a> through the web interface</li>
     </ul>
 </div>
+
+<script>
+function deleteRecording(recordingId, filename) {
+    if (confirm(`Are you sure you want to delete "${filename}"?\n\nThis action cannot be undone and will permanently remove the recording and its transcript.`)) {
+        // Show a loading indicator
+        const buttons = document.querySelectorAll(`button[onclick*="${recordingId}"]`);
+        buttons.forEach(button => {
+            button.disabled = true;
+            button.textContent = 'Deleting...';
+            button.style.backgroundColor = '#6c757d';
+        });
+
+        // Make the DELETE request
+        fetch(`/api/recordings/${recordingId}`, {
+            method: 'DELETE',
+        })
+        .then(response => {
+            if (response.ok) {
+                // Successful deletion - reload the page
+                window.location.reload();
+            } else if (response.status === 404) {
+                alert('Recording not found. It may have already been deleted.');
+                window.location.reload();
+            } else {
+                throw new Error(`Failed to delete recording: ${response.status}`);
+            }
+        })
+        .catch(error => {
+            console.error('Error deleting recording:', error);
+            alert('Failed to delete recording. Please try again.');
+            
+            // Re-enable the button
+            buttons.forEach(button => {
+                button.disabled = false;
+                button.textContent = 'Delete';
+                button.style.backgroundColor = '#dc3545';
+            });
+        });
+    }
+}
+</script>
 {% endblock %}

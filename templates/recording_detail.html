@@ -257,8 +257,12 @@
     </div>
 </div>
 
-<div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+<div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
     <a href="/recordings" style="color: #007bff; text-decoration: none;">&larr; Back to All Recordings</a>
+    <button onclick="deleteRecordingDetail({{ recording.id }}, '{{ recording.original_filename }}')" 
+            style="background-color: #dc3545; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold;">
+        🗑️ Delete Recording
+    </button>
 </div>
 
 <!-- Additional CSS for interactive transcript -->
@@ -432,6 +436,49 @@
 
 <!-- Load WaveSurfer.js library -->
 <script src="https://unpkg.com/wavesurfer.js@7"></script>
+
+<script>
+// Function for delete button in detail page
+function deleteRecordingDetail(recordingId, filename) {
+    if (confirm(`Are you sure you want to delete "${filename}"?\n\nThis action cannot be undone and will permanently remove the recording and its transcript.`)) {
+        // Show a loading indicator
+        const deleteButton = document.querySelector(`button[onclick*="deleteRecordingDetail"]`);
+        if (deleteButton) {
+            deleteButton.disabled = true;
+            deleteButton.textContent = '🗑️ Deleting...';
+            deleteButton.style.backgroundColor = '#6c757d';
+        }
+
+        // Make the DELETE request
+        fetch(`/api/recordings/${recordingId}`, {
+            method: 'DELETE',
+        })
+        .then(response => {
+            if (response.ok) {
+                // Successful deletion - redirect to recordings list
+                alert('Recording deleted successfully.');
+                window.location.href = '/recordings';
+            } else if (response.status === 404) {
+                alert('Recording not found. It may have already been deleted.');
+                window.location.href = '/recordings';
+            } else {
+                throw new Error(`Failed to delete recording: ${response.status}`);
+            }
+        })
+        .catch(error => {
+            console.error('Error deleting recording:', error);
+            alert('Failed to delete recording. Please try again.');
+            
+            // Re-enable the button
+            if (deleteButton) {
+                deleteButton.disabled = false;
+                deleteButton.textContent = '🗑️ Delete Recording';
+                deleteButton.style.backgroundColor = '#dc3545';
+            }
+        });
+    }
+}
+</script>
 
 {% if recording.transcript_status == 'complete' and recording.transcript_segments %}
 <!-- Include the interactive transcript JavaScript -->

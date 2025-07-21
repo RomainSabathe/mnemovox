@@ -520,6 +520,46 @@ def create_app(config: Config, db_path: str) -> FastAPI:
             "segments": segments,
         }
 
+    @app.delete("/api/recordings/{recording_id}", status_code=204)
+    async def api_delete_recording(recording_id: int, session=Depends(get_db_session)):
+        """API endpoint to delete a recording and its associated files."""
+        # Find the recording
+        recording = session.query(Recording).filter_by(id=recording_id).first()
+
+        if not recording:
+            raise HTTPException(status_code=404, detail="Recording not found")
+
+        # Remove from FTS index first
+        try:
+            session.execute(
+                text("DELETE FROM recordings_fts WHERE rowid = :recording_id"),
+                {"recording_id": recording_id},
+            )
+        except Exception as e:
+            logger.warning(
+                f"Failed to remove recording {recording_id} from FTS index: {e}"
+            )
+
+        # Delete the physical file
+        storage_path = Path(config.storage_path) / recording.storage_path
+        try:
+            if storage_path.exists():
+                storage_path.unlink()
+                logger.info(f"Deleted file: {storage_path}")
+            else:
+                logger.warning(f"File not found during deletion: {storage_path}")
+        except Exception as e:
+            logger.error(f"Failed to delete file {storage_path}: {e}")
+            # Continue with database deletion even if file deletion fails
+
+        # Delete from database
+        session.delete(recording)
+        session.commit()
+
+        logger.info(f"Successfully deleted recording {recording_id}")
+
+        # Return 204 No Content (implicit due to status_code=204)
+
     @app.post("/api/recordings/upload")
     async def api_upload_recording(
         file: UploadFile = File(...),

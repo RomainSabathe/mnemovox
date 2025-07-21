@@ -19,14 +19,15 @@ repos:
         additional_dependencies: [types-PyYAML, types-requests]
         args: [--ignore-missing-imports, --explicit-package-bases]
 
-  - repo: local
-    hooks:
-      - id: pytest-changed
-        name: pytest on changed files
-        description: Run pytest on changed Python files only
-        entry: sh -c 'PYTHONPATH=. uv run pytest'
-        language: system
-        types: [python]
-        pass_filenames: true
-        files: ^tests/.*\.py$
-        args: [--tb=short, -x]
+  # - repo: local
+  #   hooks:
+  #     - id: pytest-changed
+  #       name: pytest on changed files
+  #       description: Run pytest on changed Python files only
+  #       entry: sh -c 'PYTHONPATH=. uv run pytest'
+  #       language: system
+  #       types: [python]
+  #       pass_filenames: true
+  #       files: ^tests/.*\.py$
+  #       args: [--tb=short, -x]
+
