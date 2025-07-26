@@ -5,9 +5,9 @@ import pytest
 import tempfile
 from pathlib import Path
 from fastapi.testclient import TestClient
-from src.audio_manager.app import create_app
-from src.audio_manager.config import Config
-from src.audio_manager.db import init_db, get_session, Recording, sync_fts
+from mnemovox.app import create_app
+from mnemovox.config import Config
+from mnemovox.db import init_db, get_session, Recording, sync_fts
 from datetime import datetime
 from sqlalchemy import text
 
@@ -313,7 +313,7 @@ def test_check_real_database_state():
     if not real_db_path.exists():
         pytest.skip("Real database not found - this is a debug test")
 
-    from src.audio_manager.db import get_session
+    from mnemovox.db import get_session
 
     session = get_session(str(real_db_path))
     try:

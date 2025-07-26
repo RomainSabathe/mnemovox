@@ -6,9 +6,9 @@ import tempfile
 import io
 from pathlib import Path
 from fastapi.testclient import TestClient
-from src.audio_manager.app import create_app
-from src.audio_manager.config import Config
-from src.audio_manager.db import init_db
+from mnemovox.app import create_app
+from mnemovox.config import Config
+from mnemovox.db import init_db
 
 
 @pytest.fixture
@@ -141,7 +141,7 @@ def test_upload_storage_path_format(test_app_upload):
     assert response.status_code in [200, 302]
 
     # Check the database record has correct storage path
-    from src.audio_manager.db import get_session, Recording
+    from mnemovox.db import get_session, Recording
 
     session = get_session(db_path)
     try:

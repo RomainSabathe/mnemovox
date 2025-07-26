@@ -5,9 +5,9 @@ import pytest
 import tempfile
 from pathlib import Path
 from fastapi.testclient import TestClient
-from src.audio_manager.app import create_app
-from src.audio_manager.config import Config
-from src.audio_manager.db import init_db, get_session, Recording
+from mnemovox.app import create_app
+from mnemovox.config import Config
+from mnemovox.db import init_db, get_session, Recording
 from sqlalchemy import text
 
 
@@ -64,7 +64,7 @@ def test_end_to_end_upload_transcribe_search(test_app_with_real_upload):
     assert upload_data["status"] == "pending"
 
     # Step 2: Manually trigger transcription (background tasks don't run in TestClient)
-    from src.audio_manager.app import run_transcription_task
+    from mnemovox.app import run_transcription_task
 
     print(f"Manually triggering transcription for recording {recording_id}")
     run_transcription_task(recording_id, db_path)

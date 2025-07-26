@@ -2,8 +2,8 @@
 # ABOUTME: Verifies FTS table creation and sync functionality for text search
 
 from datetime import datetime
-from src.audio_manager.db import init_db, get_session, Recording
-from src.audio_manager.config import get_config
+from mnemovox.db import init_db, get_session, Recording
+from mnemovox.config import get_config
 
 
 def test_init_db_creates_fts_table_when_enabled(tmp_path):
@@ -118,7 +118,7 @@ def test_sync_fts_populates_search_data(tmp_path):
         session.commit()
 
         # Sync FTS
-        from src.audio_manager.db import sync_fts
+        from mnemovox.db import sync_fts
 
         sync_fts(session, recording.id)
 
@@ -174,7 +174,7 @@ def test_sync_fts_handles_null_transcript(tmp_path):
         session.commit()
 
         # Sync FTS - should not fail
-        from src.audio_manager.db import sync_fts
+        from mnemovox.db import sync_fts
 
         sync_fts(session, recording.id)
 
@@ -229,7 +229,7 @@ def test_sync_fts_updates_existing_entry(tmp_path):
         session.commit()
 
         # Initial sync with no transcript
-        from src.audio_manager.db import sync_fts
+        from mnemovox.db import sync_fts
 
         sync_fts(session, recording.id)
 

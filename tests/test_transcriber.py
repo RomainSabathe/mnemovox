@@ -4,7 +4,7 @@
 import pytest
 from pathlib import Path
 from unittest.mock import patch, MagicMock
-from src.audio_manager.transcriber import transcribe_file
+from mnemovox.transcriber import transcribe_file
 
 
 def test_transcribe_file_success():
@@ -23,7 +23,7 @@ def test_transcribe_file_success():
     mock_model = MagicMock()
     mock_model.transcribe.return_value = (mock_segments, mock_info)
 
-    with patch("src.audio_manager.transcriber.WhisperModel", return_value=mock_model):
+    with patch("mnemovox.transcriber.WhisperModel", return_value=mock_model):
         result = transcribe_file("/fake/path/audio.wav", "base.en")
         assert result is not None
         full_text, segments, detected_language = result
@@ -48,7 +48,7 @@ def test_transcribe_file_success():
         assert detected_language == "en"
 
         # Verify model was created with correct parameters
-        from src.audio_manager.transcriber import WhisperModel
+        from mnemovox.transcriber import WhisperModel
 
         WhisperModel.assert_called_once_with("base.en", device="cpu")
 
@@ -65,7 +65,7 @@ def test_transcribe_file_empty_segments():
     mock_model = MagicMock()
     mock_model.transcribe.return_value = (mock_segments, mock_info)
 
-    with patch("src.audio_manager.transcriber.WhisperModel", return_value=mock_model):
+    with patch("mnemovox.transcriber.WhisperModel", return_value=mock_model):
         result = transcribe_file("/fake/path/empty.wav", "base.en")
         assert result is not None
         full_text, segments, detected_language = result
@@ -88,7 +88,7 @@ def test_transcribe_file_single_segment():
     mock_model = MagicMock()
     mock_model.transcribe.return_value = (mock_segments, mock_info)
 
-    with patch("src.audio_manager.transcriber.WhisperModel", return_value=mock_model):
+    with patch("mnemovox.transcriber.WhisperModel", return_value=mock_model):
         result = transcribe_file("/fake/path/single.wav", "small")
         assert result is not None
         full_text, segments, detected_language = result
@@ -105,7 +105,7 @@ def test_transcribe_file_handles_whisper_exception():
     mock_model = MagicMock()
     mock_model.transcribe.side_effect = Exception("Whisper model error")
 
-    with patch("src.audio_manager.transcriber.WhisperModel", return_value=mock_model):
+    with patch("mnemovox.transcriber.WhisperModel", return_value=mock_model):
         result = transcribe_file("/fake/path/error.wav", "base.en")
 
         assert result is None
@@ -114,7 +114,7 @@ def test_transcribe_file_handles_whisper_exception():
 def test_transcribe_file_handles_model_creation_error():
     """Test that transcription handles model creation errors gracefully."""
     with patch(
-        "src.audio_manager.transcriber.WhisperModel",
+        "mnemovox.transcriber.WhisperModel",
         side_effect=Exception("Model load error"),
     ):
         result = transcribe_file("/fake/path/audio.wav", "invalid-model")
@@ -134,7 +134,7 @@ def test_transcribe_file_with_different_models():
     # Test with different model sizes
     for model_name in ["tiny", "base", "small", "medium", "large-v2"]:
         with patch(
-            "src.audio_manager.transcriber.WhisperModel", return_value=mock_model
+            "mnemovox.transcriber.WhisperModel", return_value=mock_model
         ) as mock_whisper_model_constructor:
             result = transcribe_file("/fake/path/audio.wav", model_name)
             assert result is not None
@@ -159,7 +159,7 @@ def test_transcribe_file_preserves_segment_timing():
     mock_model = MagicMock()
     mock_model.transcribe.return_value = (mock_segments, mock_info)
 
-    with patch("src.audio_manager.transcriber.WhisperModel", return_value=mock_model):
+    with patch("mnemovox.transcriber.WhisperModel", return_value=mock_model):
         result = transcribe_file("/fake/path/timing.wav", "base.en")
         assert result is not None
         full_text, segments, detected_language = result
@@ -192,7 +192,7 @@ def test_transcribe_file_handles_missing_confidence():
     mock_model = MagicMock()
     mock_model.transcribe.return_value = (mock_segments, mock_info)
 
-    with patch("src.audio_manager.transcriber.WhisperModel", return_value=mock_model):
+    with patch("mnemovox.transcriber.WhisperModel", return_value=mock_model):
         result = transcribe_file("/fake/path/no_conf.wav", "base.en")
         assert result is not None
         full_text, segments, detected_language = result

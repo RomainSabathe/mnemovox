@@ -30,7 +30,7 @@ Self-hosted audio recording manager with automatic transcription using Faster-Wh
 1. **Clone the repository:**
    ```bash
    git clone <repository-url>
-   cd audio_recordings_manager
+   cd mnemovox
    ```
 
 2. **Install dependencies:**
@@ -85,7 +85,7 @@ max_concurrent_transcriptions: 2        # Parallel transcription limit
 
 Run tests:
 ```bash
-pytest --cov=src/audio_manager --cov-report=term-missing
+pytest --cov=mnemovox --cov-report=term-missing
 ```
 
 ## Architecture

@@ -13,7 +13,7 @@
          corresponding audio file) and in the frontend (on the `templates/recordings_list.html`
          page and on the `templates/recording_detail.html`). Deletion SHOULD bring up a
          confirmation pop up.
-- 5. [ ] The application logic currently lives under `src/audio_manager`. This is wrong
+- 5. [x] The application logic currently lives under `src/audio_manager`. This is wrong
          for 2 reasons: 1. we shouldn't need the logic to live under `src/`, 2. the app is
          actually called `mnemovox`, not `audio_manager`. So the application should ultimately
          live under `mnemovox/`. Move all the files and adjust the imports accordingly.

@@ -5,9 +5,9 @@ import pytest
 import tempfile
 from pathlib import Path
 from fastapi.testclient import TestClient
-from src.audio_manager.app import create_app
-from src.audio_manager.config import Config
-from src.audio_manager.db import init_db, get_session, Recording
+from mnemovox.app import create_app
+from mnemovox.config import Config
+from mnemovox.db import init_db, get_session, Recording
 from datetime import datetime
 from sqlalchemy import text
 
@@ -57,7 +57,7 @@ def app_with_completed_recording():
 
             # CRITICAL: Now with our fix, this should happen automatically,
             # but for this test we simulate the correct post-transcription state
-            from src.audio_manager.db import sync_fts
+            from mnemovox.db import sync_fts
 
             sync_fts(session, recording_id)
 
@@ -129,7 +129,7 @@ def test_fts_table_consistency_with_completed_recordings():
         db_path = tmp_path / "test.db"
         init_db(str(db_path), fts_enabled=True)
 
-        from src.audio_manager.db import sync_fts
+        from mnemovox.db import sync_fts
 
         session = get_session(str(db_path))
         try:
@@ -282,7 +282,7 @@ def test_re_transcription_endpoint_ensures_fts_indexing():
         assert response.status_code == 200
 
         # Manually run the background task (since TestClient doesn't run them)
-        from src.audio_manager.app import run_transcription_task
+        from mnemovox.app import run_transcription_task
 
         run_transcription_task(recording_id, db_path)
 

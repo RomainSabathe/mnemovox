@@ -9,9 +9,9 @@ from unittest.mock import patch
 
 import pytest
 
-from src.audio_manager.config import Config
-from src.audio_manager.db import Recording, get_session, init_db
-from src.audio_manager.pipeline import (
+from mnemovox.config import Config
+from mnemovox.db import Recording, get_session, init_db
+from mnemovox.pipeline import (
     TranscriptionPipeline,
     process_pending_transcriptions,
 )
@@ -94,7 +94,7 @@ async def test_transcription_pipeline_processes_pending_record(test_config, test
     )
 
     with patch(
-        "src.audio_manager.pipeline.transcribe_file",
+        "mnemovox.pipeline.transcribe_file",
         return_value=mock_transcript_result,
     ) as mock_transcribe_call:
         pipeline = TranscriptionPipeline(test_config, test_db)
@@ -141,7 +141,7 @@ async def test_transcription_pipeline_handles_error(test_config, test_db):
     session.close()
 
     # Mock transcription failure
-    with patch("src.audio_manager.pipeline.transcribe_file", return_value=None):
+    with patch("mnemovox.pipeline.transcribe_file", return_value=None):
         pipeline = TranscriptionPipeline(test_config, test_db)
         await pipeline.process_pending_transcriptions()
 
@@ -197,7 +197,7 @@ async def test_transcription_pipeline_processes_multiple_records(test_config, te
         )
 
     with patch(
-        "src.audio_manager.pipeline.transcribe_file",
+        "mnemovox.pipeline.transcribe_file",
         side_effect=mock_transcribe_with_delay,
     ) as mock_transcribe_call_multi:  # Capture the mock to check call_count
         pipeline = TranscriptionPipeline(test_config, test_db)
@@ -261,7 +261,7 @@ def test_process_pending_transcriptions_function(test_config, test_db):
     mock_result_func = (mock_text_func, mock_segments_func, mock_lang_func)
 
     with patch(
-        "src.audio_manager.pipeline.transcribe_file", return_value=mock_result_func
+        "mnemovox.pipeline.transcribe_file", return_value=mock_result_func
     ):
         # Run the function (should work synchronously)
         asyncio.run(process_pending_transcriptions(test_config, test_db))
@@ -650,7 +650,7 @@ def test_pipeline_fts_consistency(test_db_with_fts):
         session.commit()
 
         # This is what the pipeline should do automatically
-        from src.audio_manager.db import sync_fts
+        from mnemovox.db import sync_fts
 
         sync_fts(session, recording.id)
 

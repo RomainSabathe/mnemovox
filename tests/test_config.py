@@ -2,7 +2,7 @@
 # ABOUTME: Verifies YAML config loading with defaults and validation
 
 import yaml
-from src.audio_manager.config import get_config
+from mnemovox.config import get_config
 
 
 def test_config_loads_from_yaml(tmp_path):

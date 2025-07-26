@@ -8,9 +8,9 @@ from sqlalchemy.orm import sessionmaker
 import os
 from datetime import datetime, timezone
 
-from src.audio_manager.app import create_app
-from src.audio_manager.config import get_config
-from src.audio_manager.db import Recording, init_db
+from mnemovox.app import create_app
+from mnemovox.config import get_config
+from mnemovox.db import Recording, init_db
 
 
 @pytest.fixture(scope="module")

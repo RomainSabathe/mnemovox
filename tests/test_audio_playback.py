@@ -6,8 +6,8 @@ import shutil
 from pathlib import Path
 from datetime import datetime
 from fastapi.testclient import TestClient
-from src.audio_manager.config import Config
-from src.audio_manager.db import init_db, get_session, Recording
+from mnemovox.config import Config
+from mnemovox.db import init_db, get_session, Recording
 
 
 @pytest.fixture
@@ -99,7 +99,7 @@ def test_db_with_audio_files(tmp_path, test_config):
 @pytest.fixture
 def test_client(test_config, test_db_with_audio_files):
     """Create a test client for the FastAPI app."""
-    from src.audio_manager.app import create_app
+    from mnemovox.app import create_app
 
     app = create_app(test_config, test_db_with_audio_files)
     return TestClient(app)

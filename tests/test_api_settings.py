@@ -2,8 +2,8 @@
 # ABOUTME: Validates retrieval and update of global transcription defaults
 from fastapi.testclient import TestClient
 import pytest
-from src.audio_manager.app import create_app
-from src.audio_manager.config import Config
+from mnemovox.app import create_app
+from mnemovox.config import Config
 
 
 @pytest.fixture

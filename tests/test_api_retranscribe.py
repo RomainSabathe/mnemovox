@@ -6,9 +6,9 @@ import tempfile
 from pathlib import Path
 from fastapi.testclient import TestClient
 from unittest.mock import patch
-from src.audio_manager.app import create_app
-from src.audio_manager.config import Config
-from src.audio_manager.db import init_db, get_session, Recording
+from mnemovox.app import create_app
+from mnemovox.config import Config
+from mnemovox.db import init_db, get_session, Recording
 from datetime import datetime
 
 
@@ -225,7 +225,7 @@ def test_retranscribe_background_task_integration(test_app_with_recordings):
     client, config, db_path = test_app_with_recordings
 
     # Mock the background task function directly to prevent actual execution
-    with patch("src.audio_manager.app.run_transcription_task") as mock_task:
+    with patch("mnemovox.app.run_transcription_task") as mock_task:
         response = client.post("/api/recordings/1/transcribe")
 
         assert response.status_code == 200

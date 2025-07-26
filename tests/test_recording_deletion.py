@@ -8,9 +8,9 @@ from datetime import datetime
 import pytest
 from fastapi.testclient import TestClient
 
-from audio_manager.app import create_app
-from audio_manager.config import Config
-from audio_manager.db import Recording, get_session, init_db
+from mnemovox.app import create_app
+from mnemovox.config import Config
+from mnemovox.db import Recording, get_session, init_db
 
 
 @pytest.fixture
@@ -56,7 +56,7 @@ def test_app_with_recording():
             recording_id = recording.id
 
             # Setup FTS index
-            from audio_manager.db import sync_fts
+            from mnemovox.db import sync_fts
 
             sync_fts(session, recording_id)
 
@@ -206,7 +206,7 @@ def test_delete_recording_with_special_filename_characters(test_app_with_recordi
     client, config, db_path, recording_id, audio_file_path = test_app_with_recording
 
     # Update recording with special characters in filename
-    from audio_manager.db import get_session, Recording
+    from mnemovox.db import get_session, Recording
 
     session = get_session(db_path)
     try:
@@ -230,7 +230,7 @@ def test_delete_recording_preserves_other_recordings(test_app_with_recording):
     client, config, db_path, recording_id, audio_file_path = test_app_with_recording
 
     # Create a second recording
-    from audio_manager.db import get_session, Recording, sync_fts
+    from mnemovox.db import get_session, Recording, sync_fts
     from datetime import datetime
 
     # Create another fake audio file

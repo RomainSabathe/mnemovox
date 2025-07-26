@@ -6,8 +6,8 @@ import shutil
 from pathlib import Path
 from datetime import datetime
 from fastapi.testclient import TestClient
-from src.audio_manager.config import Config
-from src.audio_manager.db import init_db, get_session, Recording
+from mnemovox.config import Config
+from mnemovox.db import init_db, get_session, Recording
 
 
 @pytest.fixture
@@ -121,7 +121,7 @@ def test_db_with_records(tmp_path, test_config):
 @pytest.fixture
 def test_client(test_config, test_db_with_records):
     """Create a test client for the FastAPI app."""
-    from src.audio_manager.app import create_app
+    from mnemovox.app import create_app
 
     app = create_app(test_config, test_db_with_records)
     return TestClient(app)
@@ -322,7 +322,7 @@ def test_api_with_real_audio_file_complete_workflow(test_config, test_db_with_re
     session.close()
 
     # Create test client
-    from src.audio_manager.app import create_app
+    from mnemovox.app import create_app
 
     app = create_app(test_config, test_db_with_records)
     client = TestClient(app)
@@ -391,7 +391,7 @@ def test_api_audio_serving_real_file_security(test_config, test_db_with_records)
     shutil.copy2(test_audio_path, full_storage_path)
 
     # Create test client
-    from src.audio_manager.app import create_app
+    from mnemovox.app import create_app
 
     app = create_app(test_config, test_db_with_records)
     client = TestClient(app)
@@ -459,7 +459,7 @@ def test_api_transcription_workflow_integration(test_config, test_db_with_record
     session.close()
 
     # Create test client
-    from src.audio_manager.app import create_app
+    from mnemovox.app import create_app
 
     app = create_app(test_config, test_db_with_records)
     client = TestClient(app)
@@ -542,7 +542,7 @@ def test_api_large_audio_file_handling(test_config, test_db_with_records):
     session.close()
 
     # Create test client
-    from src.audio_manager.app import create_app
+    from mnemovox.app import create_app
 
     app = create_app(test_config, test_db_with_records)
     client = TestClient(app)
@@ -616,7 +616,7 @@ def test_api_file_serving_content_types(test_config, test_db_with_records):
     session.close()
 
     # Create test client
-    from src.audio_manager.app import create_app
+    from mnemovox.app import create_app
 
     app = create_app(test_config, test_db_with_records)
     client = TestClient(app)

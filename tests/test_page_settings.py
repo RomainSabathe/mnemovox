@@ -1,8 +1,8 @@
 from fastapi.testclient import TestClient
 import yaml
-from audio_manager.config import get_config
-from audio_manager.db import init_db
-from audio_manager.app import create_app
+from mnemovox.config import get_config
+from mnemovox.db import init_db
+from mnemovox.app import create_app
 
 
 def test_settings_page_selects_defaults(tmp_path):

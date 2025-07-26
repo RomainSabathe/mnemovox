@@ -6,7 +6,7 @@ import json
 import time
 from pathlib import Path
 from unittest.mock import patch, MagicMock
-from src.audio_manager.audio_utils import probe_metadata, generate_internal_filename
+from mnemovox.audio_utils import probe_metadata, generate_internal_filename
 
 
 def test_probe_metadata_success():

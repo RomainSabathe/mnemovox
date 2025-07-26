@@ -4,9 +4,9 @@
 import tempfile
 from pathlib import Path
 from unittest.mock import patch, MagicMock
-from src.audio_manager.config import Config
-from src.audio_manager.db import init_db, get_session, Recording
-from src.audio_manager.app import create_app, run_transcription_task
+from mnemovox.config import Config
+from mnemovox.db import init_db, get_session, Recording
+from mnemovox.app import create_app, run_transcription_task
 from fastapi.testclient import TestClient
 from datetime import datetime
 
@@ -86,9 +86,9 @@ def test_run_transcription_updates_database():
 
         mock_transcribe_file_func = MagicMock(return_value=mock_result)
         with patch(
-            "src.audio_manager.app.get_config", return_value=mock_app_config
+            "mnemovox.app.get_config", return_value=mock_app_config
         ), patch(
-            "src.audio_manager.transcriber.transcribe_file", mock_transcribe_file_func
+            "mnemovox.transcriber.transcribe_file", mock_transcribe_file_func
         ):
             # Run the background task
             run_transcription_task(recording_id, db_path)
@@ -158,10 +158,10 @@ def test_run_transcription_handles_exception():
         # The transcribe_file mock now needs to account for the new signature if its side_effect is complex,
         # but for a simple Exception, it's fine.
         with patch(
-            "src.audio_manager.transcriber.transcribe_file",
+            "mnemovox.transcriber.transcribe_file",
             side_effect=Exception("Transcription failed"),
         ), patch(
-            "src.audio_manager.app.get_config",
+            "mnemovox.app.get_config",
             return_value=Config(
                 storage_path=str(tmp_path),
                 monitored_directory=str(tmp_path / "monitored"),
@@ -334,12 +334,12 @@ def test_background_task_syncs_fts():
 
         with (
             patch(
-                "src.audio_manager.transcriber.transcribe_file",
+                "mnemovox.transcriber.transcribe_file",
                 return_value=mock_result_fts,
             ),
-            patch("src.audio_manager.app.sync_fts", mock_sync_fts),
+            patch("mnemovox.app.sync_fts", mock_sync_fts),
             patch(
-                "src.audio_manager.app.get_config",
+                "mnemovox.app.get_config",
                 return_value=Config(
                     storage_path=str(tmp_path),
                     monitored_directory=str(tmp_path / "monitored"),

@@ -7,7 +7,7 @@ import subprocess
 import time
 import requests
 from pathlib import Path
-from src.audio_manager.db import init_db, get_session
+from mnemovox.db import init_db, get_session
 from sqlalchemy import text
 
 
@@ -49,8 +49,8 @@ import sys
 import os
 sys.path.insert(0, "{Path.cwd()}")
 
-from src.audio_manager.app import create_app
-from src.audio_manager.config import get_config
+from mnemovox.app import create_app
+from mnemovox.config import get_config
 import uvicorn
 
 # Set config path
@@ -225,7 +225,7 @@ def test_database_fts_state_after_deployment_workflow():
         init_db(str(db_path), fts_enabled=True)
 
         # Simulate what happens when background tasks DON'T run
-        from src.audio_manager.db import Recording, sync_fts
+        from mnemovox.db import Recording, sync_fts
         from datetime import datetime
 
         session = get_session(str(db_path))

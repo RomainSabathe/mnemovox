@@ -5,9 +5,9 @@ import pytest
 import tempfile
 from pathlib import Path
 from fastapi.testclient import TestClient
-from src.audio_manager.app import create_app
-from src.audio_manager.config import Config
-from src.audio_manager.db import init_db, get_session, Recording
+from mnemovox.app import create_app
+from mnemovox.config import Config
+from mnemovox.db import init_db, get_session, Recording
 from datetime import datetime
 from sqlalchemy import text
 
@@ -109,7 +109,7 @@ def test_retranscribe_endpoint_triggers_search_indexing(test_app_with_uploaded_f
 
     # Background task should have been queued (but won't run in TestClient)
     # So let's manually trigger it to simulate what would happen
-    from src.audio_manager.app import run_transcription_task
+    from mnemovox.app import run_transcription_task
 
     run_transcription_task(recording_id, db_path)
 
@@ -194,7 +194,7 @@ def test_search_before_and_after_transcription(test_app_with_uploaded_file):
     assert response.status_code == 200
 
     # Manually run transcription task
-    from src.audio_manager.app import run_transcription_task
+    from mnemovox.app import run_transcription_task
 
     run_transcription_task(recording_id, db_path)
 

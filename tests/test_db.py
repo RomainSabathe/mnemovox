@@ -2,7 +2,7 @@
 # ABOUTME: Verifies database initialization and schema creation
 
 import sqlite3
-from src.audio_manager.db import init_db, get_session
+from mnemovox.db import init_db, get_session
 from sqlalchemy import inspect
 
 

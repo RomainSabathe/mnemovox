@@ -4,9 +4,9 @@
 import pytest
 from fastapi.testclient import TestClient
 from datetime import datetime
-from src.audio_manager.app import create_app
-from src.audio_manager.config import Config
-from src.audio_manager.db import init_db, get_session, Recording
+from mnemovox.app import create_app
+from mnemovox.config import Config
+from mnemovox.db import init_db, get_session, Recording
 
 
 @pytest.fixture
@@ -48,7 +48,7 @@ def test_retranscribe_with_valid_overrides(client, tmp_path, monkeypatch):
         pass
 
     monkeypatch.setattr(
-        "src.audio_manager.app.run_transcription_task", mock_background_task
+        "mnemovox.app.run_transcription_task", mock_background_task
     )
 
     # Create a test recording
@@ -188,7 +188,7 @@ def test_retranscribe_without_overrides_uses_defaults(client, tmp_path, monkeypa
         pass
 
     monkeypatch.setattr(
-        "src.audio_manager.app.run_transcription_task", mock_background_task
+        "mnemovox.app.run_transcription_task", mock_background_task
     )
 
     # Create a test recording

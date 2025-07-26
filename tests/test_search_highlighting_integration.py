@@ -7,9 +7,9 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from audio_manager.app import create_app
-from audio_manager.config import Config
-from audio_manager.db import Recording, get_session, init_db
+from mnemovox.app import create_app
+from mnemovox.config import Config
+from mnemovox.db import Recording, get_session, init_db
 
 
 @pytest.fixture
@@ -69,7 +69,7 @@ def test_app_with_search_data():
             session.commit()
 
             # Setup FTS index
-            from audio_manager.db import sync_fts
+            from mnemovox.db import sync_fts
 
             for recording in recordings:
                 sync_fts(session, recording.id)

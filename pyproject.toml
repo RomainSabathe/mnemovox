@@ -34,7 +34,7 @@ dev = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/audio_manager"]
+packages = ["mnemovox"]
 
 [tool.mypy]
 python_version = "3.9"

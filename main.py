@@ -8,11 +8,11 @@ import uvicorn
 from pathlib import Path
 from threading import Thread
 
-from src.audio_manager.config import get_config
-from src.audio_manager.db import init_db
-from src.audio_manager.app import create_app
-from src.audio_manager.watcher import setup_watcher
-from src.audio_manager.pipeline import process_pending_transcriptions
+from mnemovox.config import get_config
+from mnemovox.db import init_db
+from mnemovox.app import create_app
+from mnemovox.watcher import setup_watcher
+from mnemovox.pipeline import process_pending_transcriptions
 
 
 def run_watcher(config, db_path):

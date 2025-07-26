@@ -7,7 +7,7 @@ import subprocess
 import time
 from pathlib import Path
 from playwright.sync_api import Page, expect
-from src.audio_manager.db import init_db, get_session
+from mnemovox.db import init_db, get_session
 from sqlalchemy import text
 
 
@@ -48,8 +48,8 @@ def test_server():
 import sys
 sys.path.insert(0, "{Path.cwd()}")
 
-from src.audio_manager.app import create_app
-from src.audio_manager.config import get_config
+from mnemovox.app import create_app
+from mnemovox.config import get_config
 import uvicorn
 import os
 

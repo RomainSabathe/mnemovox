@@ -6,9 +6,9 @@ import shutil
 from pathlib import Path
 from datetime import datetime
 from unittest.mock import patch
-from src.audio_manager.config import Config
-from src.audio_manager.db import init_db, get_session, Recording
-from src.audio_manager.watcher import IngestHandler, setup_watcher
+from mnemovox.config import Config
+from mnemovox.db import init_db, get_session, Recording
+from mnemovox.watcher import IngestHandler, setup_watcher
 
 
 @pytest.fixture
@@ -54,9 +54,9 @@ def test_ingest_handler_processes_valid_audio_file(test_config, test_db):
     }
 
     with (
-        patch("src.audio_manager.watcher.probe_metadata", return_value=mock_metadata),
+        patch("mnemovox.watcher.probe_metadata", return_value=mock_metadata),
         patch(
-            "src.audio_manager.watcher.generate_internal_filename",
+            "mnemovox.watcher.generate_internal_filename",
             return_value="1609459200_abcd1234.wav",
         ),
     ):
@@ -127,7 +127,7 @@ def test_ingest_handler_handles_invalid_audio_metadata(test_config, test_db):
     audio_file.write_text("corrupt audio")
 
     # Mock failed metadata extraction
-    with patch("src.audio_manager.watcher.probe_metadata", return_value=None):
+    with patch("mnemovox.watcher.probe_metadata", return_value=None):
         handler = IngestHandler(test_config, test_db)
 
         # Simulate file creation event
@@ -161,9 +161,9 @@ def test_ingest_handler_creates_storage_directories(test_config, test_db):
     }
 
     with (
-        patch("src.audio_manager.watcher.probe_metadata", return_value=mock_metadata),
+        patch("mnemovox.watcher.probe_metadata", return_value=mock_metadata),
         patch(
-            "src.audio_manager.watcher.generate_internal_filename",
+            "mnemovox.watcher.generate_internal_filename",
             return_value="1609459200_efgh5678.m4a",
         ),
     ):
@@ -198,9 +198,9 @@ def test_ingest_handler_idempotent_processing(test_config, test_db):
     }
 
     with (
-        patch("src.audio_manager.watcher.probe_metadata", return_value=mock_metadata),
+        patch("mnemovox.watcher.probe_metadata", return_value=mock_metadata),
         patch(
-            "src.audio_manager.watcher.generate_internal_filename",
+            "mnemovox.watcher.generate_internal_filename",
             return_value="1609459200_ijkl9012.wav",
         ),
     ):

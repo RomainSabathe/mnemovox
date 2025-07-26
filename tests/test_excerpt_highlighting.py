@@ -13,7 +13,7 @@ def test_excerpt_highlighting_with_fts_markup():
 
     # Import and call _generate_excerpt directly
     # For now, this will fail until we implement the function
-    from audio_manager.app import _generate_excerpt_with_highlighting  # noqa: E402
+    from mnemovox.app import _generate_excerpt_with_highlighting  # noqa: E402
 
     result = _generate_excerpt_with_highlighting(highlighted_text, search_term)
 
@@ -30,7 +30,7 @@ def test_excerpt_highlighting_fallback_without_fts():
     # Expected: should add <mark> tags around the search term
     expected_contains = "<mark>transcript</mark>"
 
-    from audio_manager.app import _generate_excerpt_with_highlighting  # noqa: E402
+    from mnemovox.app import _generate_excerpt_with_highlighting  # noqa: E402
 
     result = _generate_excerpt_with_highlighting(clean_text, search_term)
 
@@ -43,7 +43,7 @@ def test_excerpt_highlighting_multiple_terms():
     highlighted_text = "The <mark>audio</mark> recording contains <mark>important</mark> information about the meeting."
     search_term = "audio"
 
-    from audio_manager.app import _generate_excerpt_with_highlighting
+    from mnemovox.app import _generate_excerpt_with_highlighting
 
     result = _generate_excerpt_with_highlighting(highlighted_text, search_term)
 
@@ -59,7 +59,7 @@ def test_excerpt_highlighting_case_insensitive():
     )
     search_term = "important"  # lowercase search term
 
-    from audio_manager.app import _generate_excerpt_with_highlighting
+    from mnemovox.app import _generate_excerpt_with_highlighting
 
     result = _generate_excerpt_with_highlighting(highlighted_text, search_term)
 
@@ -71,7 +71,7 @@ def test_excerpt_highlighting_word_boundaries():
     highlighted_text = "This is a very long transcript with many words that contains the highlighted <mark>search</mark> term somewhere in the middle of a much longer text that should be truncated properly while preserving the highlighting and word boundaries."
     search_term = "search"
 
-    from audio_manager.app import _generate_excerpt_with_highlighting
+    from mnemovox.app import _generate_excerpt_with_highlighting
 
     result = _generate_excerpt_with_highlighting(
         highlighted_text, search_term, max_length=100

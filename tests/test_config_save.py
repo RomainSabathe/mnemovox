@@ -5,7 +5,7 @@ import tempfile
 import pytest
 import yaml
 
-from src.audio_manager.config import get_config, save_config
+from mnemovox.config import get_config, save_config
 
 
 def test_save_config_updates_values():
