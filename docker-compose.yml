@@ -1,0 +1,25 @@
+# ABOUTME: Docker Compose configuration for MnemoVox
+# ABOUTME: Defines service with volume mounts for data persistence
+
+services:
+  mnemovox:
+    build: .
+    container_name: mnemovox
+    ports:
+      - "8000:8000"
+    volumes:
+      # Configuration file
+      - ./config.yaml:/app/config.yaml:ro
+      # Data persistence (SQLite DB and processed audio files)
+      - ./data:/app/data
+      # Incoming directory for new audio files
+      - ./incoming:/app/incoming
+    restart: unless-stopped
+    environment:
+      - PYTHONPATH=/app
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s

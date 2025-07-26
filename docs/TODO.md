@@ -7,11 +7,11 @@
 
 # Simple-ish changes, backend
 
-- [ ] Add a Docker image and docker build/serving instructions.
+- [x] Add a Docker image and docker build/serving instructions.
 
 # Simple-ish changes, frontend + backend
 
-- [ ] Ability to delete a recording
+- [x] Ability to delete a recording
 - [ ] Settings page (default transcription config, LLM config)
 
 # Medium effort

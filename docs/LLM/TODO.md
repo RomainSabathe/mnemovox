@@ -17,5 +17,5 @@
          for 2 reasons: 1. we shouldn't need the logic to live under `src/`, 2. the app is
          actually called `mnemovox`, not `audio_manager`. So the application should ultimately
          live under `mnemovox/`. Move all the files and adjust the imports accordingly.
-- 6. [ ] Add a Dockerfile and a docker-compose.yml file to serve the application in a
+- 6. [x] Add a Dockerfile and a docker-compose.yml file to serve the application in a
          self-hosted fashion. Update the README.md accordingly.

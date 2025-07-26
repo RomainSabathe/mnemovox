@@ -21,11 +21,36 @@ Self-hosted audio recording manager with automatic transcription using Faster-Wh
 
 ## Requirements
 
+### Docker (Recommended)
+- Docker
+- Docker Compose
+
+### Manual Installation
 - Python 3.9+
 - FFmpeg (for audio metadata extraction)
 - uv (recommended) or pip
 
 ## Installation
+
+### Option 1: Docker (Recommended)
+
+1. **Clone the repository:**
+   ```bash
+   git clone <repository-url>
+   cd mnemovox
+   ```
+
+2. **Start with Docker Compose:**
+   ```bash
+   docker-compose up -d
+   ```
+
+3. **Open your browser:**
+   Navigate to `http://localhost:8000`
+
+That's it! The application will automatically create the necessary directories and start monitoring for audio files.
+
+### Option 2: Manual Installation
 
 1. **Clone the repository:**
    ```bash
@@ -64,6 +89,33 @@ max_concurrent_transcriptions: 2        # Parallel transcription limit
 ```
 
 ## Usage
+
+### Docker Usage
+
+1. **Start the application:**
+   ```bash
+   docker-compose up -d
+   ```
+
+2. **Add audio files:**
+   Copy audio files to the `./incoming/` directory
+
+3. **View recordings:**
+   - Browse all recordings at `http://localhost:8000/recordings`
+   - View individual recordings with transcripts at `/recordings/{id}`
+   - Use the JSON API at `/api/recordings`
+
+4. **Stop the application:**
+   ```bash
+   docker-compose down
+   ```
+
+5. **View logs:**
+   ```bash
+   docker-compose logs -f mnemovox
+   ```
+
+### Manual Usage
 
 1. **Start the application:**
    ```bash
