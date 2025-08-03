@@ -5,8 +5,9 @@ import asyncio
 import logging
 from pathlib import Path
 from typing import List, Optional
+
 from .config import Config
-from .db import get_session, Recording, sync_fts
+from .db import Recording, get_session, sync_fts
 from .transcriber import transcribe_file
 
 # Configure logging
@@ -36,7 +37,7 @@ class TranscriptionPipeline:
         pending_records = self._get_pending_records()
 
         if not pending_records:
-            logger.info("No pending transcriptions found")
+            logger.debug("No pending transcriptions found")
             return
 
         logger.info(f"Found {len(pending_records)} pending transcriptions")
