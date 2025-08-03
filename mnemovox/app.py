@@ -26,9 +26,27 @@ from sqlalchemy import text
 
 from .config import Config, get_config, save_config
 from .db import Recording, get_session, sync_fts
-from .llm_processor import summarize_recording
+from .llm_processor import assess_recording_title, format_recording, summarize_recording
+from .utils import get_recording
 
 logger = logging.getLogger(__name__)
+
+
+def assert_transcript_is_available(recording: Recording) -> None:
+    """
+    Assert that a recording has a completed transcript available.
+    
+    Args:
+        recording: The recording to check
+        
+    Raises:
+        HTTPException: If transcript is not available or not complete
+    """
+    if not recording.transcript_text or recording.transcript_status != "complete":
+        raise HTTPException(
+            status_code=400,
+            detail="Recording must have completed transcript before processing"
+        )
 
 
 def run_transcription_task(recording_id: int, db_path_str: str):
@@ -793,17 +811,10 @@ def create_app(config: Config, db_path: str) -> FastAPI:
         session=Depends(get_db_session),
     ):
         """API endpoint to trigger summarization of a recording."""
-        recording = session.query(Recording).filter_by(id=recording_id).first()
-
+        recording = get_recording(session, recording_id)
         if not recording:
             raise HTTPException(status_code=404, detail="Recording not found")
-
-        # Check if transcript is available
-        if not recording.transcript_text or recording.transcript_status != "complete":
-            raise HTTPException(
-                status_code=400, 
-                detail="Recording must have completed transcript before summarization"
-            )
+        assert_transcript_is_available(recording)
 
         # Queue background summarization task
         background_tasks.add_task(summarize_recording, recording_id, db_path)
@@ -816,6 +827,58 @@ def create_app(config: Config, db_path: str) -> FastAPI:
                 "id": recording_id,
                 "status": "queued",
                 "message": f"Recording {recording_id} has been queued for summarization",
+            },
+        )
+
+    @app.post("/api/recordings/{recording_id}/assess-title")
+    async def api_assess_title_recording(
+        recording_id: int,
+        background_tasks: BackgroundTasks,
+        session=Depends(get_db_session),
+    ):
+        """API endpoint to trigger title assessment of a recording."""
+        recording = get_recording(session, recording_id)
+        if not recording:
+            raise HTTPException(status_code=404, detail="Recording not found")
+        assert_transcript_is_available(recording)
+
+        # Queue background title assessment task
+        background_tasks.add_task(assess_recording_title, recording_id, db_path)
+
+        logger.info(f"Queued title assessment for recording {recording_id}")
+
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={
+                "id": recording_id,
+                "status": "queued",
+                "message": f"Recording {recording_id} has been queued for title assessment",
+            },
+        )
+
+    @app.post("/api/recordings/{recording_id}/format")
+    async def api_format_recording(
+        recording_id: int,
+        background_tasks: BackgroundTasks,
+        session=Depends(get_db_session),
+    ):
+        """API endpoint to trigger formatting of a recording."""
+        recording = get_recording(session, recording_id)
+        if not recording:
+            raise HTTPException(status_code=404, detail="Recording not found")
+        assert_transcript_is_available(recording)
+
+        # Queue background formatting task
+        background_tasks.add_task(format_recording, recording_id, db_path)
+
+        logger.info(f"Queued formatting for recording {recording_id}")
+
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={
+                "id": recording_id,
+                "status": "queued",
+                "message": f"Recording {recording_id} has been queued for formatting",
             },
         )
 

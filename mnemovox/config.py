@@ -1,11 +1,12 @@
 # ABOUTME: Configuration loader module
 # ABOUTME: Loads and saves YAML configuration with sensible defaults
 
-import yaml
-from dataclasses import dataclass
 import os
-import tempfile
 import shutil
+import tempfile
+from dataclasses import dataclass
+
+import yaml
 
 
 @dataclass
@@ -21,7 +22,7 @@ class Config:
     fts_enabled: bool = True
     items_per_page: int = 20
     default_language: str = "auto"
-    openrouter_model: str = "gpt-3.5-turbo"
+    openrouter_model: str = "openai/gpt-4.1-mini"
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
 
 
