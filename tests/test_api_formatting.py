@@ -7,7 +7,7 @@ import tempfile
 from pathlib import Path
 from datetime import datetime
 from fastapi.testclient import TestClient
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 from mnemovox.app import create_app
 from mnemovox.config import Config
@@ -43,11 +43,11 @@ def test_app_with_recording():
                 storage_path="test/path.wav",
                 import_timestamp=datetime.now(),
                 transcript_status="complete",
-                transcript_text="um, this is like, a test transcript, you know, with filler words and, uh, poor grammar."
+                transcript_text="um, this is like, a test transcript, you know, with filler words and, uh, poor grammar.",
             )
             session.add(recording)
             session.commit()
-            
+
             # Add recording without transcript
             recording2 = Recording(
                 original_filename="test2.wav",
@@ -55,7 +55,7 @@ def test_app_with_recording():
                 storage_path="test2/path.wav",
                 import_timestamp=datetime.now(),
                 transcript_status="pending",
-                transcript_text=None
+                transcript_text=None,
             )
             session.add(recording2)
             session.commit()
@@ -73,24 +73,24 @@ class TestFormattingAPI:
     def test_format_success(self, mock_format, test_app_with_recording):
         """Test successful formatting request."""
         client = test_app_with_recording
-        
+
         response = client.post("/api/recordings/1/format")
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["id"] == 1
         assert data["status"] == "queued"
         assert "formatting" in data["message"]
-        
+
         # Verify background task was added
         mock_format.assert_called_once()
 
     def test_format_recording_not_found(self, test_app_with_recording):
         """Test formatting with non-existent recording."""
         client = test_app_with_recording
-        
+
         response = client.post("/api/recordings/999/format")
-        
+
         assert response.status_code == 404
         data = response.json()
         assert data["detail"] == "Recording not found"
@@ -99,13 +99,13 @@ class TestFormattingAPI:
     def test_format_no_transcript(self, mock_format, test_app_with_recording):
         """Test formatting with recording without completed transcript."""
         client = test_app_with_recording
-        
+
         response = client.post("/api/recordings/2/format")
-        
+
         assert response.status_code == 400
         data = response.json()
         assert "completed transcript" in data["detail"]
-        
+
         # Verify background task was not added
         mock_format.assert_not_called()
 
@@ -113,13 +113,13 @@ class TestFormattingAPI:
     def test_format_incomplete_transcript(self, mock_format, test_app_with_recording):
         """Test formatting with recording with incomplete transcript."""
         client = test_app_with_recording
-        
+
         # This test uses recording 2 which has pending transcript status
         response = client.post("/api/recordings/2/format")
-        
+
         assert response.status_code == 400
         data = response.json()
         assert "completed transcript" in data["detail"]
-        
+
         # Verify background task was not added
         mock_format.assert_not_called()

@@ -35,17 +35,17 @@ logger = logging.getLogger(__name__)
 def assert_transcript_is_available(recording: Recording) -> None:
     """
     Assert that a recording has a completed transcript available.
-    
+
     Args:
         recording: The recording to check
-        
+
     Raises:
         HTTPException: If transcript is not available or not complete
     """
     if not recording.transcript_text or recording.transcript_status != "complete":
         raise HTTPException(
             status_code=400,
-            detail="Recording must have completed transcript before processing"
+            detail="Recording must have completed transcript before processing",
         )
 
 

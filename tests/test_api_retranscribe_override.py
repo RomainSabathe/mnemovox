@@ -47,9 +47,7 @@ def test_retranscribe_with_valid_overrides(client, tmp_path, monkeypatch):
     def mock_background_task(*args, **kwargs):
         pass
 
-    monkeypatch.setattr(
-        "mnemovox.app.run_transcription_task", mock_background_task
-    )
+    monkeypatch.setattr("mnemovox.app.run_transcription_task", mock_background_task)
 
     # Create a test recording
     db_path = str(tmp_path / "test.db")
@@ -187,9 +185,7 @@ def test_retranscribe_without_overrides_uses_defaults(client, tmp_path, monkeypa
     def mock_background_task(*args, **kwargs):
         pass
 
-    monkeypatch.setattr(
-        "mnemovox.app.run_transcription_task", mock_background_task
-    )
+    monkeypatch.setattr("mnemovox.app.run_transcription_task", mock_background_task)
 
     # Create a test recording
     db_path = str(tmp_path / "test.db")

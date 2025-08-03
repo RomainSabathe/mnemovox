@@ -6,10 +6,23 @@ import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
 import os
 
-from mnemovox.openrouter import OpenRouterClient, OpenRouterError, create_openrouter_client
+from mnemovox.openrouter import (
+    OpenRouterClient,
+    OpenRouterError,
+    create_openrouter_client,
+)
 from mnemovox.config import Config
-from mnemovox.prompts import format_prompt, parse_llm_response, get_prompt_template, MultiTagPromptTemplate
-from mnemovox.llm_processor import process_recording_with_llm, assess_recording_title, format_recording
+from mnemovox.prompts import (
+    format_prompt,
+    parse_llm_response,
+    get_prompt_template,
+    MultiTagPromptTemplate,
+)
+from mnemovox.llm_processor import (
+    process_recording_with_llm,
+    assess_recording_title,
+    format_recording,
+)
 
 
 class TestOpenRouterClient:
@@ -18,16 +31,18 @@ class TestOpenRouterClient:
     def test_client_initialization_without_api_key(self):
         """Test that client initialization fails without API key."""
         config = Config()
-        
+
         # Ensure no API key is set
         with patch.dict(os.environ, {}, clear=True):
-            with pytest.raises(OpenRouterError, match="OPENROUTER_API_KEY environment variable not set"):
+            with pytest.raises(
+                OpenRouterError, match="OPENROUTER_API_KEY environment variable not set"
+            ):
                 OpenRouterClient(config)
 
     def test_client_initialization_with_api_key(self):
         """Test successful client initialization with API key."""
         config = Config()
-        
+
         with patch.dict(os.environ, {"OPENROUTER_API_KEY": "test-key"}):
             client = OpenRouterClient(config)
             assert client.api_key == "test-key"
@@ -38,30 +53,24 @@ class TestOpenRouterClient:
     async def test_send_prompt_success(self):
         """Test successful prompt sending."""
         config = Config()
-        
+
         with patch.dict(os.environ, {"OPENROUTER_API_KEY": "test-key"}):
             client = OpenRouterClient(config)
-            
+
             # Mock successful HTTP response
             mock_response = MagicMock()
             mock_response.json.return_value = {
-                "choices": [
-                    {
-                        "message": {
-                            "content": "This is a test summary."
-                        }
-                    }
-                ]
+                "choices": [{"message": {"content": "This is a test summary."}}]
             }
             mock_response.raise_for_status.return_value = None
-            
+
             with patch("httpx.AsyncClient") as mock_client:
                 mock_instance = AsyncMock()
                 mock_instance.post.return_value = mock_response
                 mock_client.return_value.__aenter__.return_value = mock_instance
-                
+
                 result = await client.send_prompt("Test prompt")
-                
+
                 assert result == "This is a test summary."
                 mock_instance.post.assert_called_once()
 
@@ -69,15 +78,15 @@ class TestOpenRouterClient:
     async def test_send_prompt_http_error(self):
         """Test prompt sending with HTTP error."""
         config = Config()
-        
+
         with patch.dict(os.environ, {"OPENROUTER_API_KEY": "test-key"}):
             client = OpenRouterClient(config)
-            
+
             with patch("httpx.AsyncClient") as mock_client:
                 mock_instance = AsyncMock()
                 mock_instance.post.side_effect = Exception("HTTP Error")
                 mock_client.return_value.__aenter__.return_value = mock_instance
-                
+
                 with pytest.raises(OpenRouterError, match="API request failed"):
                     await client.send_prompt("Test prompt")
 
@@ -85,7 +94,7 @@ class TestOpenRouterClient:
     async def test_create_openrouter_client_factory(self):
         """Test client factory function."""
         config = Config()
-        
+
         with patch.dict(os.environ, {"OPENROUTER_API_KEY": "test-key"}):
             client = await create_openrouter_client(config)
             assert isinstance(client, OpenRouterClient)
@@ -114,7 +123,9 @@ class TestPromptTemplates:
 
     def test_parse_llm_response_with_tags(self):
         """Test parsing LLM response with XML tags."""
-        response = "Some text <summarization>This is the summary</summarization> more text"
+        response = (
+            "Some text <summarization>This is the summary</summarization> more text"
+        )
         result = parse_llm_response("summarization", response)
         assert result == "This is the summary"
 
@@ -199,20 +210,29 @@ class TestLLMProcessor:
         mock_recording = MagicMock()
         mock_recording.transcript_text = "Test transcript"
         mock_recording.transcript_status = "complete"
-        
+
         # Mock session
         mock_session = MagicMock()
-        mock_session.query.return_value.filter_by.return_value.first.return_value = mock_recording
-        
+        mock_session.query.return_value.filter_by.return_value.first.return_value = (
+            mock_recording
+        )
+
         # Mock OpenRouter client
         mock_client = AsyncMock()
-        mock_client.send_prompt.return_value = "<summarization>Test summary</summarization>"
-        
+        mock_client.send_prompt.return_value = (
+            "<summarization>Test summary</summarization>"
+        )
+
         with patch("mnemovox.llm_processor.get_session", return_value=mock_session):
-            with patch("mnemovox.llm_processor.create_openrouter_client", return_value=mock_client):
+            with patch(
+                "mnemovox.llm_processor.create_openrouter_client",
+                return_value=mock_client,
+            ):
                 with patch("mnemovox.llm_processor.get_config"):
-                    result = await process_recording_with_llm(1, "summarization", "test.db")
-                    
+                    result = await process_recording_with_llm(
+                        1, "summarization", "test.db"
+                    )
+
                     assert result == "Test summary"
                     mock_client.send_prompt.assert_called_once()
 
@@ -222,11 +242,13 @@ class TestLLMProcessor:
         # Mock session returning None
         mock_session = MagicMock()
         mock_session.query.return_value.filter_by.return_value.first.return_value = None
-        
+
         with patch("mnemovox.llm_processor.get_session", return_value=mock_session):
             with patch("mnemovox.llm_processor.get_config"):
-                result = await process_recording_with_llm(999, "summarization", "test.db")
-                
+                result = await process_recording_with_llm(
+                    999, "summarization", "test.db"
+                )
+
                 assert result is None
 
     @pytest.mark.asyncio
@@ -236,14 +258,16 @@ class TestLLMProcessor:
         mock_recording = MagicMock()
         mock_recording.transcript_text = None
         mock_recording.transcript_status = "pending"
-        
+
         mock_session = MagicMock()
-        mock_session.query.return_value.filter_by.return_value.first.return_value = mock_recording
-        
+        mock_session.query.return_value.filter_by.return_value.first.return_value = (
+            mock_recording
+        )
+
         with patch("mnemovox.llm_processor.get_session", return_value=mock_session):
             with patch("mnemovox.llm_processor.get_config"):
                 result = await process_recording_with_llm(1, "summarization", "test.db")
-                
+
                 assert result is None
 
     @pytest.mark.asyncio
@@ -251,13 +275,17 @@ class TestLLMProcessor:
         """Test successful title assessment processing."""
         # Mock database recording
         mock_recording = MagicMock()
-        mock_recording.transcript_text = "This is a test recording about machine learning"
+        mock_recording.transcript_text = (
+            "This is a test recording about machine learning"
+        )
         mock_recording.transcript_status = "complete"
-        
+
         # Mock session
         mock_session = MagicMock()
-        mock_session.query.return_value.filter_by.return_value.first.return_value = mock_recording
-        
+        mock_session.query.return_value.filter_by.return_value.first.return_value = (
+            mock_recording
+        )
+
         # Mock OpenRouter client
         mock_client = AsyncMock()
         mock_client.send_prompt.return_value = """
@@ -265,12 +293,17 @@ class TestLLMProcessor:
         <title>AI Topics Overview</title>
         <title>Tech Talk Session</title>
         """
-        
+
         with patch("mnemovox.llm_processor.get_session", return_value=mock_session):
-            with patch("mnemovox.llm_processor.create_openrouter_client", return_value=mock_client):
+            with patch(
+                "mnemovox.llm_processor.create_openrouter_client",
+                return_value=mock_client,
+            ):
                 with patch("mnemovox.llm_processor.get_config"):
-                    result = await process_recording_with_llm(1, "title_assessment", "test.db")
-                    
+                    result = await process_recording_with_llm(
+                        1, "title_assessment", "test.db"
+                    )
+
                     assert isinstance(result, list)
                     assert len(result) == 3
                     assert "Machine Learning Discussion" in result
@@ -285,20 +318,29 @@ class TestLLMProcessor:
         mock_recording = MagicMock()
         mock_recording.transcript_text = "um, this is like, a test recording, you know"
         mock_recording.transcript_status = "complete"
-        
+
         # Mock session
         mock_session = MagicMock()
-        mock_session.query.return_value.filter_by.return_value.first.return_value = mock_recording
-        
+        mock_session.query.return_value.filter_by.return_value.first.return_value = (
+            mock_recording
+        )
+
         # Mock OpenRouter client
         mock_client = AsyncMock()
-        mock_client.send_prompt.return_value = "<formatted_text>This is a test recording.</formatted_text>"
-        
+        mock_client.send_prompt.return_value = (
+            "<formatted_text>This is a test recording.</formatted_text>"
+        )
+
         with patch("mnemovox.llm_processor.get_session", return_value=mock_session):
-            with patch("mnemovox.llm_processor.create_openrouter_client", return_value=mock_client):
+            with patch(
+                "mnemovox.llm_processor.create_openrouter_client",
+                return_value=mock_client,
+            ):
                 with patch("mnemovox.llm_processor.get_config"):
-                    result = await process_recording_with_llm(1, "formatting", "test.db")
-                    
+                    result = await process_recording_with_llm(
+                        1, "formatting", "test.db"
+                    )
+
                     assert result == "This is a test recording."
                     mock_client.send_prompt.assert_called_once()
 
@@ -310,19 +352,26 @@ class TestLLMProcessor:
         mock_recording.transcript_text = "Test transcript"
         mock_recording.transcript_status = "complete"
         mock_recording.original_filename = "test.wav"
-        
+
         # Mock session
         mock_session = MagicMock()
-        mock_session.query.return_value.filter_by.return_value.first.return_value = mock_recording
-        
+        mock_session.query.return_value.filter_by.return_value.first.return_value = (
+            mock_recording
+        )
+
         with patch("mnemovox.llm_processor.get_session", return_value=mock_session):
-            with patch("mnemovox.llm_processor.process_recording_with_llm", return_value=["Title 1", "Title 2"]) as mock_process:
+            with patch(
+                "mnemovox.llm_processor.process_recording_with_llm",
+                return_value=["Title 1", "Title 2"],
+            ) as mock_process:
                 with patch("mnemovox.llm_processor.logger") as mock_logger:
                     await assess_recording_title(1, "test.db")
-                    
-                    mock_process.assert_called_once_with(1, "title_assessment", "test.db")
+
+                    mock_process.assert_called_once_with(
+                        1, "title_assessment", "test.db"
+                    )
                     mock_logger.info.assert_called_once()
-                    
+
                     # Check that logger was called with title information
                     call_args = mock_logger.info.call_args
                     assert "title assessment completed" in call_args[0][0]
@@ -336,19 +385,24 @@ class TestLLMProcessor:
         mock_recording.transcript_text = "Original transcript"
         mock_recording.transcript_status = "complete"
         mock_recording.original_filename = "test.wav"
-        
+
         # Mock session
         mock_session = MagicMock()
-        mock_session.query.return_value.filter_by.return_value.first.return_value = mock_recording
-        
+        mock_session.query.return_value.filter_by.return_value.first.return_value = (
+            mock_recording
+        )
+
         with patch("mnemovox.llm_processor.get_session", return_value=mock_session):
-            with patch("mnemovox.llm_processor.process_recording_with_llm", return_value="Formatted transcript") as mock_process:
+            with patch(
+                "mnemovox.llm_processor.process_recording_with_llm",
+                return_value="Formatted transcript",
+            ) as mock_process:
                 with patch("mnemovox.llm_processor.logger") as mock_logger:
                     await format_recording(1, "test.db")
-                    
+
                     mock_process.assert_called_once_with(1, "formatting", "test.db")
                     mock_logger.info.assert_called_once()
-                    
+
                     # Check that logger was called with formatting information
                     call_args = mock_logger.info.call_args
                     assert "formatting completed" in call_args[0][0]

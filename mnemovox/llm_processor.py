@@ -99,7 +99,7 @@ async def process_recording_with_llm(
             response = await client.send_prompt(prompt)
 
             # Parse the response
-            result = parse_llm_response(task, response)
+            result: str = parse_llm_response(task, response)
 
             logger.info(
                 f"LLM processing completed for recording {recording_id}, task: {task}"

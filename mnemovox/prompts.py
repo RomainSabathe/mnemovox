@@ -2,7 +2,7 @@
 # ABOUTME: Structured prompts with XML tags for reliable output parsing
 
 import re
-from typing import Dict, List
+from typing import Dict, List, Union
 
 
 class PromptTemplate:
@@ -16,7 +16,7 @@ class PromptTemplate:
         """Format the prompt template with provided variables."""
         return self.template.format(**kwargs)
 
-    def parse_response(self, response: str) -> str:
+    def parse_response(self, response: str) -> Union[str, List[str]]:
         """Parse LLM response and extract content from XML tags."""
         pattern = rf"<{self.output_tag}>(.*?)</{self.output_tag}>"
         match = re.search(pattern, response, re.DOTALL | re.IGNORECASE)

@@ -162,7 +162,7 @@ def test_search_with_multiple_terms_highlights_all(test_app_with_search_data):
 
 
 def test_search_without_fts_highlighting_adds_manual_highlighting(
-    test_app_with_search_data
+    test_app_with_search_data,
 ):
     """Test that search without FTS highlighting falls back to manual highlighting."""
     client, config, db_path = test_app_with_search_data

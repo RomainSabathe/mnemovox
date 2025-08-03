@@ -63,7 +63,7 @@ class OpenRouterClient:
 
                 # Extract content from OpenRouter response format
                 if "choices" in data and len(data["choices"]) > 0:
-                    content = data["choices"][0]["message"]["content"]
+                    content: str = data["choices"][0]["message"]["content"]
                     logger.info(
                         f"OpenRouter API call successful, received {len(content)} characters"
                     )
@@ -98,4 +98,3 @@ async def create_openrouter_client(config: Config) -> OpenRouterClient:
         OpenRouterError: If client cannot be created
     """
     return OpenRouterClient(config)
-

@@ -4,7 +4,7 @@
 import asyncio
 import logging
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, List, Optional, Tuple
 
 from .config import Config
 from .db import Recording, get_session, sync_fts
@@ -58,7 +58,7 @@ class TranscriptionPipeline:
 
         logger.info("Transcription pipeline processing completed")
 
-    def _get_pending_records(self) -> List[tuple]:
+    def _get_pending_records(self) -> List[Tuple[Any, ...]]:
         """
         Get all pending transcription records from the database.
 
@@ -68,7 +68,7 @@ class TranscriptionPipeline:
         session = get_session(self.db_path)
 
         try:
-            records = (
+            records: List[Tuple[Any, ...]] = (
                 session.query(
                     Recording.id,
                     Recording.storage_path,

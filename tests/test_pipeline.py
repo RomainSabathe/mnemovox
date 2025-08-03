@@ -260,9 +260,7 @@ def test_process_pending_transcriptions_function(test_config, test_db):
     mock_lang_func = "en"
     mock_result_func = (mock_text_func, mock_segments_func, mock_lang_func)
 
-    with patch(
-        "mnemovox.pipeline.transcribe_file", return_value=mock_result_func
-    ):
+    with patch("mnemovox.pipeline.transcribe_file", return_value=mock_result_func):
         # Run the function (should work synchronously)
         asyncio.run(process_pending_transcriptions(test_config, test_db))
 
