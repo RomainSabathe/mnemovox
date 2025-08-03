@@ -26,6 +26,7 @@ from sqlalchemy import text
 
 from .config import Config, get_config, save_config
 from .db import Recording, get_session, sync_fts
+from .llm_processor import summarize_recording
 
 logger = logging.getLogger(__name__)
 
@@ -782,6 +783,39 @@ def create_app(config: Config, db_path: str) -> FastAPI:
                 "id": recording_id,
                 "status": "pending",
                 "message": message,
+            },
+        )
+
+    @app.post("/api/recordings/{recording_id}/summarize")
+    async def api_summarize_recording(
+        recording_id: int,
+        background_tasks: BackgroundTasks,
+        session=Depends(get_db_session),
+    ):
+        """API endpoint to trigger summarization of a recording."""
+        recording = session.query(Recording).filter_by(id=recording_id).first()
+
+        if not recording:
+            raise HTTPException(status_code=404, detail="Recording not found")
+
+        # Check if transcript is available
+        if not recording.transcript_text or recording.transcript_status != "complete":
+            raise HTTPException(
+                status_code=400, 
+                detail="Recording must have completed transcript before summarization"
+            )
+
+        # Queue background summarization task
+        background_tasks.add_task(summarize_recording, recording_id, db_path)
+
+        logger.info(f"Queued summarization for recording {recording_id}")
+
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={
+                "id": recording_id,
+                "status": "queued",
+                "message": f"Recording {recording_id} has been queued for summarization",
             },
         )
 

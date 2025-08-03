@@ -21,6 +21,8 @@ class Config:
     fts_enabled: bool = True
     items_per_page: int = 20
     default_language: str = "auto"
+    openrouter_model: str = "gpt-3.5-turbo"
+    openrouter_base_url: str = "https://openrouter.ai/api/v1"
 
 
 def get_config(config_path: str = "config.yaml") -> Config:
@@ -71,6 +73,12 @@ def get_config(config_path: str = "config.yaml") -> Config:
 
     if isinstance(yaml_data.get("default_language"), str):
         config.default_language = yaml_data["default_language"]
+
+    if isinstance(yaml_data.get("openrouter_model"), str):
+        config.openrouter_model = yaml_data["openrouter_model"]
+
+    if isinstance(yaml_data.get("openrouter_base_url"), str):
+        config.openrouter_base_url = yaml_data["openrouter_base_url"]
 
     return config
 

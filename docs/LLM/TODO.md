@@ -19,3 +19,28 @@
          live under `mnemovox/`. Move all the files and adjust the imports accordingly.
 - 6. [x] Add a Dockerfile and a docker-compose.yml file to serve the application in a
          self-hosted fashion. Update the README.md accordingly.
+- 7. [ ] I want you to add support for OpenRouter. I am picturing 2 use cases for this:
+
+    1. For users to ask questions about their recordings,
+    2. For a backend use-case: I want to use LLMs to derive information and rework
+       recordings. Think things like: summarization, style rewriting, date extraction, chapter
+       identification, etc.
+
+   For this task, we will focus on the second use case. Let's build things
+   step-by-step, one task at a time. The goal of Task 7 is to come up with an
+   implementation plan for this feature. I'm picturing the following elements:
+
+   - Backend code to handle IO with OpenRouter API
+   - Extending the configuration module to include settings like: the OpenRouter API
+   key, the model name.
+   - Writing a set of pre-defined prompts for each use case of interest. To begin with,
+     we will write a Summarization prompt.
+   - Writing a function to send the content of a recording, alongside the prompt/task to
+     accomplish. The function should parse the output of the LLM. To make this
+   trackable, the prompt should include elements like "You will provide the
+   summarization in a <summarization> tag."
+
+   - For now, I propose that this function simply writes the summarization (or the
+   output of the LLM)
+   - Write your plan in CURRENT_TASK.md. Include potential questions you may have for
+   Jesse.
